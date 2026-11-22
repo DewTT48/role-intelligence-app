@@ -294,7 +294,7 @@
         h('strong', { text: 'Enterprise / ที่ปรึกษา' }),
         h('div.pack-num', { text: 'ตกลงราคา' }),
         h('span.muted.small', { text: 'ทำ JD ทั้งองค์กร 300 ตำแหน่งขึ้นไป พร้อม workshop และ Competency ขององค์กร' }),
-        window.RI_CONFIG.contactEmail ? h('a.btn', { href: 'mailto:' + window.RI_CONFIG.contactEmail, text: 'ติดต่อเรา' }) : h('span.btn', { text: 'ติดต่อผู้ดูแลระบบ' }),
+        window.RI_CONFIG.contactEmail ? h('a.btn', { href: 'mailto:' + window.RI_CONFIG.contactEmail, text: 'ติดต่อเรา' }) : h('span.muted.small', { text: 'ติดต่อผู้ดูแลระบบเพื่อตกลงราคา' }),
         window.RI_CONFIG.contactEmail ? h('span.muted.small', { text: window.RI_CONFIG.contactEmail }) : null)])),
       ui.note('info', 'ช่วงเปิดตัว ติดต่อเติมเครดิตกับผู้ดูแลระบบได้โดยตรง ระบบชำระเงินออนไลน์และใบกำกับภาษีเต็มรูปจะเปิดในเฟสถัดไป'),
       h('div.grid-2', {},

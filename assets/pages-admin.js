@@ -282,32 +282,52 @@
       perJd, daily, gens, tasks, pricesCard(r, el)]);
   }
 
+  var PROV_LABEL = { anthropic: 'Anthropic Claude', openai: 'OpenAI', google: 'Google Gemini' };
+  var SOURCE_LABEL = { litellm: 'ราคาตรงจากผู้ให้บริการ', openrouter: 'ราคาผ่าน OpenRouter (อาจต่างจากราคาตรง)', 'default': 'ค่าเริ่มต้นในระบบ' };
+
   function pricesCard(r, el) {
-    var models = Object.keys(r.prices.models);
-    r.modelsSeen.forEach(function (m) { if (models.indexOf(m) < 0) models.push(m); });
-    var rateIn = h('input.mono', { type: 'number', step: '0.01', min: '1', id: 'usd-thb', value: String(r.prices.usdThb) });
-    var inputs = models.map(function (m) {
-      var p = r.prices.models[m] || {};
-      return { model: m,
-        i: h('input.mono', { type: 'number', step: '0.01', min: '0', value: p['in'] === undefined ? '' : String(p['in']), 'aria-label': m + ' ราคา input' }),
-        o: h('input.mono', { type: 'number', step: '0.01', min: '0', value: p.out === undefined ? '' : String(p.out), 'aria-label': m + ' ราคา output' }) };
+    var P = r.prices;
+    var inUse = {};
+    r.modelsSeen.forEach(function (m) { inUse[m] = true; });
+    var groups = {};
+    Object.keys(P.models).forEach(function (m) {
+      var x = P.models[m];
+      var prov = x.provider || 'other';
+      var isNew = Object.keys(P.featured || {}).some(function (k) { return (P.featured[k] || []).indexOf(m) >= 0; });
+      if (!isNew && !inUse[m]) return; // only what is newest or what this system uses
+      (groups[prov] = groups[prov] || []).push(m);
     });
-    var msg = h('div');
-    var save = ui.button('primary', 'บันทึกราคา', function () {
-      var payload = { usdThb: Number(rateIn.value), models: {}, days: period };
-      inputs.forEach(function (x) { if (x.i.value !== '' && x.o.value !== '') payload.models[x.model] = { 'in': Number(x.i.value), out: Number(x.o.value) }; });
-      ui.busy(save, 'กำลังบันทึก…', function () {
-        return api.call('admin.prices.save', payload).then(function (res) { renderCost(el.querySelector('.stack'), res, el); ui.toast('บันทึกราคาแล้ว คำนวณใหม่ให้แล้ว'); });
-      }).catch(function (e) { ui.mount(msg, ui.note('err', ui.errorText(e))); });
+    r.unpricedModels.forEach(function (m) { (groups.other = groups.other || []).push(m); });
+    var rows = [];
+    ['anthropic', 'openai', 'google', 'other'].forEach(function (prov) {
+      if (!groups[prov]) return;
+      rows.push(h('tr.group-row', {}, h('td', { colspan: '4' }, h('strong', { text: PROV_LABEL[prov] || 'อื่น ๆ' }))));
+      groups[prov].sort().forEach(function (m) {
+        var x = P.models[m];
+        rows.push(h('tr', {},
+          h('td', {}, h('span.mono', { text: m }), inUse[m] ? h('span.pill', { text: 'ใช้อยู่' }) : null),
+          h('td.mono', { text: x ? '$' + x['in'] : '–' }),
+          h('td.mono', { text: x ? '$' + x.out : '–' }),
+          h('td.small', { text: x ? (SOURCE_LABEL[x.source] || x.source) : 'ยังหาราคาไม่ได้' })));
+      });
     });
+    var refresh = ui.button('small-btn', 'อัปเดตราคาตอนนี้', function () {
+      ui.busy(refresh, 'กำลังดึงราคา…', function () {
+        return api.call('admin.prices.refresh', { days: period }).then(function (res) {
+          renderCost(el.querySelector('.stack'), res, el);
+          ui.toast(res.prices.errors && res.prices.errors.length ? 'ดึงได้บางส่วน: ' + res.prices.errors.join(', ') : 'อัปเดตราคาแล้ว คำนวณใหม่ให้แล้ว');
+        });
+      }).catch(function (e) { ui.toast(ui.errorText(e), 'err'); });
+    }, { icon: 'history' });
     return h('section.card', {},
-      h('h2', { text: 'ราคาโมเดล' }),
-      h('p.muted', { text: 'ดอลลาร์ต่อ 1 ล้าน token ตามราคาของผู้ให้บริการ (การคิดของ AI นับเป็น output) แก้ได้เมื่อราคาหรืออัตราแลกเปลี่ยนเปลี่ยน' }),
-      h('label.field', { for: 'usd-thb', style: 'max-width:220px' }, 'อัตราแลกเปลี่ยน (บาทต่อ 1 ดอลลาร์)', rateIn),
-      table(['โมเดล', 'input $/1M', 'output $/1M'], inputs.map(function (x) {
-        return h('tr', {}, h('td.mono', { text: x.model + (r.modelsSeen.indexOf(x.model) >= 0 ? ' · ใช้อยู่' : '') }), h('td', {}, x.i), h('td', {}, x.o));
-      }), 'prices'),
-      msg, h('div.row.end', {}, save));
+      h('div.row-between', {}, h('h2', { text: 'ราคาโมเดล' }), refresh),
+      h('p.muted', { text: 'ระบบดึงราคาเองทุก 7 วัน: รุ่นใหม่ล่าสุดของแต่ละค่ายที่ใช้สร้างข้อความได้ และทุกรุ่นที่ระบบนี้ใช้อยู่ หน่วยเป็นดอลลาร์ต่อ 1 ล้าน token (การคิดของ AI นับเป็น output)' }),
+      h('div.stats', {},
+        stat('อัตราแลกเปลี่ยน', '1 $ = ' + Number(P.usdThb).toLocaleString('th-TH', { maximumFractionDigits: 2 }) + ' ฿', P.fx ? 'จาก ' + P.fx.source : 'ค่าเริ่มต้น (ยังดึงไม่ได้)'),
+        stat('ดึงราคาล่าสุด', P.fetched_at ? new Date(P.fetched_at).toLocaleDateString('th-TH', { dateStyle: 'medium' }) : 'ยังไม่เคย',
+          (P.fetched_at ? 'เวลา ' + new Date(P.fetched_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น. · ' : '') +
+          (P.errors && P.errors.length ? 'ไม่สำเร็จบางแหล่ง: ' + P.errors.join(', ') : 'ราคาตรงจากรายการราคา LiteLLM · รุ่นใหม่จาก OpenRouter'))),
+      table(['โมเดล', 'input', 'output', 'ที่มาของราคา'], rows, 'prices'));
   }
 
   // ---------------- ลูกค้าและเครดิต ----------------
@@ -332,7 +352,7 @@
           h('span' + (off ? '.struck' : ''), { text: u.email }),
           u.role === 'admin' ? h('span.pill', { text: 'admin' }) : null,
           off ? h('span.pill.gray', { text: 'ถูกระงับ' }) : null,
-          u.role === 'admin' ? null : ui.button('ghost.small-btn', off ? 'เปิดใช้' : 'ระงับ', function () { toggleUser(u, off); }));
+          u.role === 'admin' ? null : ui.button('small-btn' + (off ? '' : '.danger'), off ? 'เปิดใช้บัญชี' : 'ระงับบัญชี', function () { toggleUser(u, off); }, { icon: off ? 'check' : 'lock' }));
       }));
       return h('tr', {},
         h('td', {}, h('strong', { text: o.name || '(ยังไม่ตั้งชื่อ)' }), o.business_type ? h('div.small.muted', { text: o.business_type }) : null),

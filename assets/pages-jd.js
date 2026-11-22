@@ -408,7 +408,7 @@
         coreNudge(),
         !onboard.seen('jd-next') ? null : h('div.edit-help', {},
           h('strong', { text: 'แก้ JD ได้ทุกหมวด' }),
-          h('span', { text: 'กด "แก้" แล้วพิมพ์ในตารางได้เลย (ฟรี) แก้หลายหมวดแล้วบันทึกครั้งเดียวได้ · หรือกด "AI ช่วยแก้" แล้วบอกว่าอยากให้แก้อย่างไร · AI แก้ฟรีเหลือ ' + v.freeAiEdits +
+          h('span', { text: 'กด "แก้" แล้วพิมพ์ในตารางได้เลย (ฟรี) แก้หลายหมวดแล้วบันทึกครั้งเดียวได้ · หรือกด "AI ช่วยแก้" แล้วบอกว่าอยากให้แก้อย่างไร · AI แก้ฟรี เหลือ ' + v.freeAiEdits +
             ' ครั้งใน JD นี้ จากนั้นทีละข้อ ' + v.editCosts.item + ' / ทั้งหมวด ' + v.editCosts.section + ' เครดิต · ทุกการบันทึกเป็น Rev. ใหม่' })),
         h('article.card.jd-doc', {},
           h('div.preview-head', {}, h('span.eyebrow', { text: 'JOB DESCRIPTION · ' + ui.TIER[v.tier].label.toUpperCase() }), h('strong.preview-title', { text: jd.title }),

@@ -410,7 +410,7 @@
         funnel: [{ step: 'signup', count: 14 }, { step: 'company', count: 11 }, { step: 'firstJd', count: 9 }, { step: 'paid', count: 0 }] };
     },
     'admin.aiCost': function () { return demoCost(); },
-    'admin.prices.save': function (p) { db.prices = { usdThb: Number(p.usdThb) || 33, models: Object.assign({}, demoCost().prices.models, p.models || {}) }; return demoCost(); },
+    'admin.prices.refresh': function () { db.pricesFetched = now(); return demoCost(); },
     'admin.orgs': function (p) {
       var q = String(p.q || '').toLowerCase();
       var rows = [{ id: db.org.id, name: db.org.name || '', business_type: db.org.business_type || '', created_at: now(),
@@ -451,14 +451,19 @@
   };
 
   function demoCost() {
-    var prices = db.prices || { usdThb: 33, models: { 'claude-opus-5-5': { 'in': 4, out: 20 }, 'claude-sonnet-5-5': { 'in': 2, out: 10 }, 'claude-haiku-5-5': { 'in': 0.1, out: 0.5 } } };
-    var k = prices.usdThb / 33;
+    var L = function (a, b, prov) { return { 'in': a, out: b, provider: prov, source: 'litellm' }; };
+    var prices = { usdThb: 32.47, fx: { source: 'open.er-api.com' }, fetched_at: db.pricesFetched || '2026-11-22T01:00:00Z', errors: [],
+      featured: { anthropic: ['claude-fable-5-2', 'claude-haiku-5-5', 'claude-sonnet-5-5', 'claude-opus-5-5'], openai: ['gpt-6.2-astra', 'gpt-6.2-sol', 'gpt-6.1-terra'], google: ['gemini-4-neon', 'gemini-4-carbon', 'gemini-3.8-flash'] },
+      models: { 'claude-fable-5-2': L(8, 40, 'anthropic'), 'claude-opus-5-5': L(4, 20, 'anthropic'), 'claude-sonnet-5-5': L(2, 10, 'anthropic'), 'claude-haiku-5-5': L(0.1, 0.5, 'anthropic'),
+        'gpt-6.2-astra': L(8, 40, 'openai'), 'gpt-6.2-sol': L(2, 10, 'openai'), 'gpt-6.1-terra': L(1, 5, 'openai'),
+        'gemini-4-neon': { 'in': 3, out: 15, provider: 'google', source: 'openrouter' }, 'gemini-4-carbon': L(2, 10, 'google'), 'gemini-3.8-flash': L(0.75, 3.75, 'google') } };
+    var k = 1;
     var r2 = function (n) { return Math.round(n * k * 100) / 100; };
     var rate = { value: 92.52, pack: 'Organization' };
     var chips = r2(1.35);
     var write = { bronze: r2(4.62), silver: r2(9.8), gold: r2(15.4) };
     return { days: 30, total: r2(342.18), calls: 412, failed: 3, positions: 23, chipsPerPosition: chips, bahtPerCredit: rate, prices: prices,
-      unpricedModels: prices.models['gemini-3.8-flash'] ? [] : ['gemini-3.8-flash'], modelsSeen: ['claude-opus-5-5', 'gemini-3.8-flash'],
+      unpricedModels: [], modelsSeen: ['claude-opus-5-5', 'gemini-3.8-flash'],
       perJd: ['bronze', 'silver', 'gold'].map(function (t) {
         return { tier: t, chips: chips, write: write[t], total: Math.round((chips + write[t]) * 100) / 100, credits: CREDITS[t], revenue: Math.round(CREDITS[t] * rate.value * 100) / 100 };
       }),

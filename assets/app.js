@@ -36,7 +36,7 @@
     ui.mount(document.getElementById('credit-box'), [
       h('span.credit-label', { text: 'เครดิตคงเหลือ' }),
       h('strong.credit-num', { text: ui.fmtCredits(c.balance) }),
-      h('span.muted', { text: 'Role Brief ฟรีเหลือ ' + c.freeBronzeLeft + ' ครั้งเดือนนี้' }),
+      h('span.muted', { text: 'Role Brief ฟรี เหลือ ' + c.freeBronzeLeft + ' ครั้งเดือนนี้' }),
       h('a', { href: '#credits', text: 'เติมเครดิต' })
     ]);
   }
