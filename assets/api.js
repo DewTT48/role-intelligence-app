@@ -39,7 +39,7 @@
   var db = (function () {
     try { var s = sessionStorage.getItem('ri.demo.db'); if (s) return JSON.parse(s); } catch (e) { /* ignore */ }
     return { user: null, org: { id: 'org_demo', name: '', business_type: '', main_goal: '' }, ledger: [], positions: [], versions: [], gens: [],
-      ai: { keys: { google: 'AIzaSyD0000000000000000000000000000k7Qp' }, primary: { provider: 'google', model: 'gemini-3.8-flash', effort: '' }, fallback: null, routes: {} } };
+      ai: { keys: { google: 'demo-key-not-real-0000' }, primary: { provider: 'google', model: 'gemini-3.8-flash', effort: '' }, fallback: null, routes: {} } };
   })();
   function persist() { try { sessionStorage.setItem('ri.demo.db', JSON.stringify(db)); } catch (e) { /* ignore */ } }
   var RANK = { bronze: 0, silver: 1, gold: 2 };
