@@ -108,7 +108,7 @@
   function me() {
     return { user: db.user, org: Object.assign({ complete: complete(), core: [], leadership: [], competencyLimits: { core: demoLimits('core'), leadership: demoLimits('leadership') } }, db.org),
       credits: { balance: balance(), freeBronzeLeft: Math.max(0, FREE - bronzeUsed()), costs: D.costs, packs: D.packs, pricing: D.pricing },
-      onboarding: onboarding() };
+      onboarding: onboarding(), hasSample: !!db.sample };
   }
   function pos(id) { var p = db.positions.filter(function (x) { return x.id === id; })[0]; if (!p) throw fail('NOT_FOUND', 'ไม่พบตำแหน่งนี้'); return p; }
   function view(p) {
@@ -441,6 +441,29 @@
       o.balance = Math.round((o.balance + amount) * 10) / 10;
       return { orgId: o.id, balance: o.balance };
     },
+    'admin.dormant': function () { return demoDormant(); },
+    'admin.reminders.set': function (p) { db.remind = Object.assign({}, db.remind, { enabled: !!p.enabled }); return demoDormant(); },
+    'admin.reminders.run': function () {
+      if (!(db.remind || {}).enabled) throw fail('REMINDERS_OFF', 'เปิดอีเมลเตือนก่อน แล้วค่อยกดส่ง');
+      db.remind.sentB = true; db.remind.lastRun = now(); db.remind.lastResult = { sent: 1, errors: 0 };
+      var d = demoDormant(); d.justSent = { sent: 1, errors: 0 }; return d;
+    },
+    'admin.org.positions': function (p) {
+      if (p.orgId === db.org.id) return db.positions.filter(function (x) { return vers(x.id).length; }).map(function (x) { var v = vers(x.id); return { id: x.id, code: x.code || '', title: x.title || x.answers.position_title || '', tier: v[v.length - 1].tier, version: v.length }; });
+      return [{ id: 'pos_hr', code: 'JD-0001', title: 'HR Manager', tier: 'gold', version: 1 }];
+    },
+    'admin.sample.set': function (p) {
+      var x = db.positions.filter(function (q) { return q.id === p.positionId; })[0];
+      var v = x ? vers(x.id) : [];
+      var jd = v.length ? v[v.length - 1].jd : (D.sampleJd || null);
+      db.sample = jd ? { title: jd.title || 'HR Manager', department: jd.department || '', reports_to: jd.reports_to || '', tier: v.length ? v[v.length - 1].tier : 'gold',
+        order: jd.order || Object.keys(jd.sections || {}), sections: jd.sections || {}, from: { code: x ? x.code || '' : 'JD-0001', version: v.length || 1 }, set_at: now() } : null;
+      if (!db.sample) throw fail('NOT_FOUND', 'โหมดตัวอย่างมีเฉพาะ JD ที่สร้างในเครื่องนี้');
+      return demoDormant().sample;
+    },
+    'admin.sample.clear': function () { db.sample = null; return null; },
+    'sample.get': function () { return db.sample ? { title: db.sample.title, department: db.sample.department, reports_to: db.sample.reports_to, tier: db.sample.tier, order: db.sample.order, sections: db.sample.sections } : null; },
+    'user.unsubscribe': function (p) { if (String(p.token || '').length < 20) throw fail('BAD_LINK', 'ลิงก์ไม่ถูกต้อง'); return { unsubscribed: true }; },
     'admin.user.status': function (p) {
       var u = null;
       (db.demoOrgs || []).forEach(function (o) { o.users.forEach(function (x) { if (x.id === p.userId) u = x; }); });
@@ -449,6 +472,22 @@
       return { userId: u.id, status: u.status };
     }
   };
+
+  function demoDormant() {
+    var r = db.remind || {};
+    var day = function (n) { return new Date(Date.now() - n * 86400000).toISOString(); };
+    var mail = function (subject, lines) { return '<div style="font-family:sans-serif;font-size:15px;line-height:1.6">' + lines.map(function (l) { return '<p>' + l + '</p>'; }).join('') +
+      '<p><a href="#" style="display:inline-block;background:#1B3A6B;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">เริ่มสร้าง JD แรก</a></p><p style="font-size:12px;color:#5B6472">ไม่อยากรับอีเมลแนะนำแบบนี้อีก <a href="#">กดเลิกรับ</a></p></div>'; };
+    return { enabled: !!r.enabled, lastRun: r.lastRun || '', lastResult: r.lastResult || null, dueNow: r.enabled && !r.sentB ? 1 : (r.enabled ? 0 : 1),
+      rows: [
+        { userId: 'u_b', email: 'owner@shop-b.example', status: 'active', created_at: day(2), days: 2, stage: 'company', sent: r.sentB ? [{ key: 'r1', at: now() }] : [], unsubscribed: false, next: r.sentB ? { key: 'r2', due: false } : { key: 'r1', due: true } },
+        { userId: 'u_c', email: 'hr@shop-c.example', status: 'active', created_at: day(5), days: 5, stage: 'answering', sent: [{ key: 'r1', at: day(4) }, { key: 'r2', at: day(1) }], unsubscribed: false, next: { key: 'r3', due: false } }],
+      templates: [
+        { key: 'r1', days: 1, subject: 'เหลืออีกขั้นเดียวก็ได้ JD แรกของคุณ', html: mail('', ['ขอบคุณที่สมัครใช้ Role Intelligence', 'ตอบคำถามเรื่องตำแหน่ง 5 ข้อแรก (ราว 3 นาที) แล้วกดสร้าง Role Brief ได้ฟรี']) },
+        { key: 'r2', days: 3, subject: 'คุณมี 3 เครดิตรออยู่ใน Role Intelligence', html: mail('', ['บัญชีของคุณมี 3 เครดิต และสร้าง Role Brief ได้ฟรีเดือนละ 3 ครั้ง', 'ลองดูตัวอย่าง JD ที่ระบบสร้างได้ก่อนก็ได้']) },
+        { key: 'r3', days: 7, subject: 'ติดตรงไหนในการสร้าง JD ไหมครับ', html: mail('', ['เห็นว่าคุณยังไม่ได้สร้าง JD แรก ถ้าติดตรงไหน ตอบอีเมลนี้กลับมาบอกได้เลย เราอ่านทุกฉบับ']) }],
+      sample: db.sample ? { title: db.sample.title, tier: db.sample.tier, from: db.sample.from, set_at: db.sample.set_at } : null };
+  }
 
   function demoCost() {
     var L = function (a, b, prov) { return { 'in': a, out: b, provider: prov, source: 'litellm' }; };

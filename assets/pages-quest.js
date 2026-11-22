@@ -373,6 +373,7 @@
       ui.mount(els.generate, [
         h('h2', { text: 'สร้าง JD' }),
         h('p.muted', { text: can ? 'สร้างได้ทุกเมื่อ ไม่ต้องตอบครบ หมวดที่ข้อมูลไม่พอจะไม่อยู่ในเอกสาร' : 'ตอบคำถามที่จำเป็น 5 ข้อแรกให้ครบก่อน' }),
+        app.me.hasSample ? h('div', {}, ui.button('ghost.small-btn', 'ดูตัวอย่าง JD ที่ระบบสร้าง', function () { window.open('#sample', '_blank'); }, { icon: 'jds' })) : null,
         h('div.gen-buttons', {}, ui.TIERS.map(function (t) {
           var credits = meta.tierCredits[t];
           var paidCredits = paid ? meta.tierCredits[paid] : 0;

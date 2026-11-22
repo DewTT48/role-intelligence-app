@@ -34,7 +34,8 @@
       h('ol.welcome-steps', {},
         step(1, 'บอกเรื่องบริษัท', '3 คำถาม · 1 นาที · +1 เครดิต', 'ช่วยให้ AI เขียนให้ตรงกับธุรกิจของคุณ ชื่อบริษัทไม่ถูกส่งให้ AI'),
         step(2, 'ตอบคำถามเรื่องตำแหน่ง', '5 ข้อแรก · ราว 3 นาที', 'กดเลือกจากตัวเลือกที่ AI เสนอ หรือพิมพ์เอง ข้อไหนไม่แน่ใจกดข้ามได้ ระบบบันทึกให้อัตโนมัติ'),
-        step(3, 'เลือกระดับ JD', 'สร้างได้ทันทีที่ข้อมูลพอ', 'เริ่มจาก Role Brief ฟรีก่อนก็ได้ อัปเกรดทีหลังได้ จ่ายเฉพาะส่วนต่าง และหมวดที่มีอยู่แล้วไม่เปลี่ยน', tiers)),
+        step(3, 'เลือกระดับ JD', 'สร้างได้ทันทีที่ข้อมูลพอ', 'เริ่มจาก Role Brief ฟรีก่อนก็ได้ อัปเกรดทีหลังได้ จ่ายเฉพาะส่วนต่าง และหมวดที่มีอยู่แล้วไม่เปลี่ยน',
+          h('div.stack-tight', {}, tiers, app.me.hasSample ? h('div', {}, ui.button('ghost.small-btn', 'ดูตัวอย่าง JD ที่ระบบสร้าง', function () { window.open('#sample', '_blank'); }, { icon: 'jds' })) : null))),
       h('div.welcome-credit', {},
         h('span', {}, 'ตอนนี้คุณมี ', h('strong', { text: ui.fmtCredits(credits.balance || 0) + ' เครดิต' }),
           bonusLeft ? ' · รับเพิ่มได้อีก ' + bonusLeft + ' เครดิต จากการตั้งค่าบริษัทให้ครบ' : '')),
@@ -90,4 +91,41 @@
   function seen(id) { return (ob().prefs.tips || []).indexOf(id) >= 0; }
 
   window.onboard = { checklist: checklist, tip: tip, dismiss: dismiss, seen: seen };
+})();
+
+/* Sample JD (any signed-in user) and the unsubscribe page (no sign-in needed). */
+(function () {
+  var h = ui.h;
+  window.pages.sample = function (view) {
+    var box = h('div.stack', {}, h('p.muted', { text: 'กำลังโหลด…' }));
+    ui.mount(view, [ui.pageHead('ตัวอย่างจริงจากระบบ', 'ตัวอย่าง JD'), box]);
+    Promise.all([api.call('sample.get'), app.loadQuestions()]).then(function (r) {
+      var s = r[0];
+      if (!s) { ui.mount(box, ui.note('info', 'ยังไม่มีตัวอย่าง JD ในตอนนี้')); return; }
+      var titleOf = {};
+      (r[1].sections || []).forEach(function (x) { titleOf[x.key] = x.title; });
+      ui.mount(box, [
+        h('div.note.info', { role: 'status' },
+          h('span', { text: 'นี่คือ JD ที่ระบบสร้างจากคำตอบของผู้ใช้จริง ระดับ ' + ui.TIER[s.tier].label + ' (' + s.order.length + ' หมวด) ของคุณจะเขียนตามคำตอบของคุณเอง ชื่อบริษัทถูกนำออกแล้ว' }),
+          h('div.row', {}, ui.button('primary.small-btn', 'เริ่มสร้าง JD ของฉัน', function () { app.go('#quest'); }))),
+        h('article.card.jd-doc', {},
+          h('div.preview-head', {}, h('span.eyebrow', { text: 'JOB DESCRIPTION · ' + ui.TIER[s.tier].label.toUpperCase() + ' · ตัวอย่าง' }), h('strong.preview-title', { text: s.title }),
+            h('span.muted.small', { text: [s.department, s.reports_to ? 'รายงานตรงต่อ ' + s.reports_to : ''].filter(Boolean).join(' · ') })),
+          s.order.filter(function (k) { return s.sections[k] !== undefined; }).map(function (key, i) {
+            return h('section.jd-sec', {},
+              h('div.sec-head', {}, h('h3', {}, h('span.sec-mark', { text: '§' + ('0' + (i + 1)).slice(-2) }), titleOf[key] || key)),
+              window.jdView.render(key, s.sections[key]));
+          }))
+      ]);
+    }, function (e) { ui.mount(box, ui.note('err', ui.errorText(e))); });
+  };
+
+  window.pages.unsubscribe = function (view, token) {
+    var box = h('section.card.narrow', {}, h('p.muted', { text: 'กำลังยกเลิก…' }));
+    ui.mount(view, [ui.pageHead('Role Intelligence', 'เลิกรับอีเมลแนะนำ'), box]);
+    api.call('user.unsubscribe', { token: token }).then(function () {
+      ui.mount(box, [h('h2', { text: 'เรียบร้อยแล้ว' }), h('p', { text: 'เราจะไม่ส่งอีเมลแนะนำการใช้งานถึงคุณอีก ส่วนอีเมลรหัสเข้าสู่ระบบยังได้รับตามปกติเมื่อคุณขอ' }),
+        h('div.row', {}, h('a.btn', { href: '#quest', text: 'ไปที่ Role Intelligence' }))]);
+    }, function (e) { ui.mount(box, ui.note('err', ui.errorText(e))); });
+  };
 })();

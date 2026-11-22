@@ -149,7 +149,7 @@
   }
 
   // ======================= admin home: tabs =======================
-  var TABS = [['overview', 'ภาพรวม'], ['cost', 'ค่า AI'], ['customers', 'ลูกค้าและเครดิต'], ['ai', 'ตั้งค่า AI']];
+  var TABS = [['overview', 'ภาพรวม'], ['cost', 'ค่า AI'], ['customers', 'ลูกค้าและเครดิต'], ['followup', 'ผู้ใช้ใหม่ที่ยังไม่เริ่ม'], ['ai', 'ตั้งค่า AI']];
   var KIND_LABEL = { 'new': 'สร้างใหม่', upgrade: 'อัปเกรดจากระดับก่อน', rewrite: 'เขียนใหม่ทั้งฉบับ' };
   var FUNNEL_LABEL = { signup: 'สมัคร', company: 'กรอกข้อมูลบริษัท', firstJd: 'สร้าง JD แรก', paid: 'ซื้อเครดิต' };
   var ACTION_LABEL = { signup_bonus: 'เครดิตฟรีเมื่อสมัคร', company_profile_bonus: 'โบนัสข้อมูลบริษัท', core_competency_bonus: 'โบนัส Core Competency',
@@ -192,7 +192,7 @@
         return h('a' + (t[0] === tab ? '.on' : ''), { href: '#admin/' + t[0], text: t[1], 'aria-current': t[0] === tab ? 'page' : null });
       })),
       body]);
-    ({ overview: overviewTab, cost: costTab, customers: customersTab, ai: aiSettings })[tab](body);
+    ({ overview: overviewTab, cost: costTab, customers: customersTab, followup: followupTab, ai: aiSettings })[tab](body);
   };
   window.pages['ai-settings'] = function (view) { window.pages.admin(view, 'ai'); };
 
@@ -362,7 +362,8 @@
         h('td.small', { text: when(o.last_login_at) }),
         h('td', {}, h('div.row-tight', {},
           ui.button('small-btn', 'ปรับเครดิต', function () { adjust(o); }, { icon: 'credits' }),
-          ui.button('ghost.small-btn', 'ประวัติ', function () { ledger(o); }, { icon: 'history' }))));
+          ui.button('ghost.small-btn', 'ประวัติ', function () { ledger(o); }, { icon: 'history' }),
+          o.jds ? ui.button('ghost.small-btn', 'ใช้เป็น JD ตัวอย่าง', function () { pickSample(o); }, { icon: 'jds' }) : null)));
     }
     function adjust(o) {
       var amount = h('input.mono', { type: 'number', step: '0.5', id: 'adj-amount', placeholder: 'เช่น 10 หรือ -2' });
@@ -389,6 +390,26 @@
         ui.confirmBox('ประวัติเครดิต · ' + (o.name || o.users[0] && o.users[0].email || ''), body, 'ปิด');
       }, function (e) { ui.toast(ui.errorText(e), 'err'); });
     }
+    function pickSample(o) {
+      api.call('admin.org.positions', { orgId: o.id }).then(function (list) {
+        var chosen = null;
+        var body = h('div.stack', {},
+          h('p', { text: 'เลือก JD ที่จะแสดงเป็นตัวอย่างให้ผู้ใช้ทุกคน ระบบจะคัดลอกฉบับล่าสุดไปเก็บไว้ (ถ้าเจ้าของแก้ภายหลัง ตัวอย่างไม่เปลี่ยน) และเอาชื่อบริษัทออก' }),
+          h('div.stack-tight', {}, list.map(function (x) {
+            return h('label.provider', {}, h('span', {}, h('input', { type: 'radio', name: 'sample-pick', value: x.id, onchange: function () { chosen = x; } }),
+              ' ' + (x.code ? x.code + ' · ' : '') + x.title), h('small', {}, ui.tierPill(x.tier), ' Rev. ' + x.version));
+          })),
+          h('p.small.muted', { text: 'ควรขออนุญาตเจ้าของ JD ก่อน ถ้าไม่ใช่บัญชีของคุณเอง' }));
+        ui.confirmBox('ใช้เป็น JD ตัวอย่าง · ' + (o.name || o.users[0].email), body, 'ใช้ JD นี้').then(function (yes) {
+          if (!yes) return;
+          if (!chosen) { ui.toast('ยังไม่ได้เลือก JD', 'err'); return; }
+          api.call('admin.sample.set', { positionId: chosen.id }).then(function () {
+            ui.toast('ตั้งเป็นตัวอย่างแล้ว ผู้ใช้ทุกคนเห็นได้ที่ "ดูตัวอย่าง JD"');
+            app.me.hasSample = true;
+          }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+        });
+      }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+    }
     function toggleUser(u, isOff) {
       var title = isOff ? 'เปิดใช้บัญชีนี้อีกครั้ง?' : 'ระงับบัญชีนี้?';
       var text = isOff ? u.email + ' จะเข้าระบบได้ตามปกติ' : u.email + ' จะถูกออกจากระบบทันทีและเข้าระบบไม่ได้ ข้อมูลและเครดิตยังอยู่ครบ เปิดใช้ใหม่ได้ภายหลัง';
@@ -399,5 +420,82 @@
       });
     }
     load();
+  }
+
+  // ---------------- ผู้ใช้ใหม่ที่ยังไม่เริ่ม ----------------
+  var STAGE_LABEL = { company: 'ยังไม่กรอกข้อมูลบริษัท', firstJd: 'กรอกบริษัทแล้ว ยังไม่เริ่ม JD', answering: 'ตอบคำถามค้างไว้ ยังไม่กดสร้าง' };
+  var REMIND_LABEL = { r1: 'ฉบับ 1', r2: 'ฉบับ 2', r3: 'ฉบับ 3' };
+
+  function followupTab(el) {
+    var out = h('div.stack');
+    ui.mount(el, out);
+    loading(out);
+    api.call('admin.dormant').then(function (d) { renderFollowup(out, d); }, function (e) { failed(out, e); });
+  }
+
+  function renderFollowup(out, d) {
+    var toggle = ui.button(d.enabled ? '' : 'go', d.enabled ? 'ปิดอีเมลเตือน' : 'เปิดอีเมลเตือนอัตโนมัติ', function () {
+      var on = !d.enabled;
+      ui.confirmBox(on ? 'เปิดอีเมลเตือนอัตโนมัติ?' : 'ปิดอีเมลเตือน?',
+        on ? 'ระบบจะส่งอีเมลถึงผู้ใช้จริงที่สมัครแล้วยังไม่ได้สร้าง JD วันละรอบ (ตอนมีคนเข้าใช้ระบบครั้งแรกของวัน) คนละไม่เกิน 3 ฉบับ ตอนนี้มีคนที่ถึงกำหนด ' + d.dueNow + ' คน'
+          : 'จะไม่มีอีเมลเตือนออกไปอีกจนกว่าจะเปิดใหม่', on ? 'เปิดและเริ่มส่ง' : 'ปิด').then(function (yes) {
+        if (!yes) return;
+        api.call('admin.reminders.set', { enabled: on }).then(function (nd) { renderFollowup(out, nd); ui.toast(on ? 'เปิดแล้ว' : 'ปิดแล้ว'); },
+          function (e) { ui.toast(ui.errorText(e), 'err'); });
+      });
+    }, { icon: d.enabled ? 'lock' : 'check' });
+    var runBtn = d.enabled && d.dueNow ? ui.button('small-btn', 'ส่งรอบนี้เลย (' + d.dueNow + ' คน)', function () {
+      ui.busy(runBtn, 'กำลังส่ง…', function () {
+        return api.call('admin.reminders.run').then(function (nd) { renderFollowup(out, nd); ui.toast('ส่งแล้ว ' + nd.justSent.sent + ' ฉบับ'); });
+      }).catch(function (e) { ui.toast(ui.errorText(e), 'err'); });
+    }) : null;
+
+    var status = h('section.card', {},
+      h('div.row-between', {}, h('div', {}, h('h2', { text: 'อีเมลเตือนอัตโนมัติ' }),
+        h('span.pill' + (d.enabled ? '' : '.gray'), { text: d.enabled ? 'เปิดอยู่' : 'ปิดอยู่' })), h('div.row', {}, runBtn, toggle)),
+      h('p.muted', { text: 'ส่งเฉพาะคนที่สมัครแล้วยังไม่มี JD: ฉบับ 1 วันที่ 1 · ฉบับ 2 วันที่ 3 · ฉบับ 3 วันที่ 7 (ห่างกันอย่างน้อย 2 วัน) หยุดทันทีเมื่อเขาสร้าง JD หรือกดเลิกรับ ไม่ส่งถึงคนที่สมัครเกิน 30 วัน ผู้รับตอบกลับได้ อีเมลตอบกลับจะเข้ากล่องของบัญชีที่ระบบใช้ส่ง' }),
+      d.lastRun ? h('p.small.muted', { text: 'ส่งรอบล่าสุด ' + when(d.lastRun) + ' · ' + (d.lastResult ? d.lastResult.sent + ' ฉบับ' + (d.lastResult.errors ? ' · ส่งไม่สำเร็จ ' + d.lastResult.errors : '') : '') }) : null,
+      h('details.mail-preview', {}, h('summary', { text: 'ดูข้อความทั้ง 3 ฉบับ' }),
+        h('div.stack', {}, d.templates.map(function (t) {
+          var frame = h('div.mail-body');
+          frame.innerHTML = t.html; // our own template from the backend
+          return h('div.mail-card', {}, h('div.small.muted', { text: REMIND_LABEL[t.key] + ' · วันที่ ' + t.days }), h('strong', { text: t.subject }), frame);
+        }))));
+
+    var rows = d.rows.map(function (r) {
+      return h('tr', {},
+        h('td', {}, h('span' + (r.status !== 'active' ? '.struck' : ''), { text: r.email })),
+        h('td.small', { text: when(r.created_at) + ' · ' + r.days + ' วันก่อน' }),
+        h('td', { text: STAGE_LABEL[r.stage] || r.stage }),
+        h('td.small', { text: r.sent.length ? r.sent.map(function (x) { return REMIND_LABEL[x.key]; }).join(', ') : '–' }),
+        h('td.small', { text: r.unsubscribed ? 'เลิกรับแล้ว' : r.status !== 'active' ? 'ถูกระงับ' : !r.next ? 'ครบแล้ว' : r.next.due ? 'ถึงกำหนด ' + REMIND_LABEL[r.next.key] : 'รอ ' + REMIND_LABEL[r.next.key] }));
+    });
+    var counts = {};
+    d.rows.forEach(function (r) { counts[r.stage] = (counts[r.stage] || 0) + 1; });
+
+    var sample = h('section.card', {},
+      h('h2', { text: 'JD ตัวอย่างที่ผู้ใช้เห็น' }),
+      d.sample ? h('p', {}, 'ตอนนี้ใช้ ', h('strong', { text: (d.sample.from.code ? d.sample.from.code + ' · ' : '') + d.sample.title }), ' ', ui.tierPill(d.sample.tier),
+        ' Rev. ' + d.sample.from.version + ' (ตั้งเมื่อ ' + when(d.sample.set_at) + ')') : h('p.muted', { text: 'ยังไม่ได้ตั้ง เลือกได้จากแท็บลูกค้าและเครดิต ปุ่ม "ใช้เป็น JD ตัวอย่าง"' }),
+      h('p.small.muted', { text: 'ผู้ใช้เห็นปุ่ม "ดูตัวอย่าง JD" ในหน้าต้อนรับ หน้าสร้าง JD และหน้า JD ของฉันตอนที่ยังไม่มี JD' }),
+      d.sample ? h('div.row', {}, h('a.btn.small-btn', { href: '#sample', target: '_blank', text: 'เปิดดูตัวอย่าง' }),
+        ui.button('ghost.small-btn.danger', 'เลิกใช้ตัวอย่างนี้', function () {
+          ui.confirmBox('เลิกใช้ JD ตัวอย่าง?', 'ผู้ใช้จะไม่เห็นปุ่มดูตัวอย่างจนกว่าจะตั้งใหม่', 'เลิกใช้').then(function (yes) {
+            if (!yes) return;
+            api.call('admin.sample.clear').then(function () { app.me.hasSample = false; followupTab(out.parentNode); }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+          });
+        })) : null);
+
+    ui.mount(out, [
+      h('div.stats', {},
+        stat('สมัครแล้วยังไม่มี JD', num(d.rows.length), ''),
+        stat('ยังไม่กรอกบริษัท', num(counts.company || 0), ''),
+        stat('กรอกบริษัทแล้ว ยังไม่เริ่ม', num(counts.firstJd || 0), ''),
+        stat('ตอบค้างไว้', num(counts.answering || 0), '')),
+      status,
+      h('section.card', {}, h('h2', { text: 'รายชื่อ' }),
+        h('p.muted', { text: 'คนที่ค้างนาน ลองโทรหรือทักไปถามตรง ๆ ได้ผลกว่าอีเมล และได้รู้ว่าติดตรงไหน' }),
+        table(['อีเมล', 'สมัครเมื่อ', 'ค้างที่', 'อีเมลที่ส่งแล้ว', 'ฉบับถัดไป'], rows, 'customers')),
+      sample]);
   }
 })();

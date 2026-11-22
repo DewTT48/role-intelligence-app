@@ -578,3 +578,8 @@ td.pos { color: var(--green-ink); }
   .stat { padding: 12px; }
   .stat-value { font-size: 20px; }
 }
+
+.mail-preview summary { cursor: pointer; color: var(--blue); font-weight: 600; }
+.mail-preview[open] summary { margin-bottom: 12px; }
+.mail-card { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--paper-2); display: flex; flex-direction: column; gap: 6px; }
+.mail-body { background: var(--surface); border-radius: 8px; padding: 4px 14px; font-size: 14px; }

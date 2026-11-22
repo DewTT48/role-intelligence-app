@@ -304,13 +304,17 @@
     });
   }
 
+  window.jdView = { render: view_ };
+
   window.pages.jds = function (view) {
     var box = h('div.stack', {}, h('p.muted', { text: 'กำลังโหลด…' }));
     ui.mount(view, [ui.pageHead('ตำแหน่งทั้งหมดของบริษัท', 'JD ของฉัน', ui.button('primary', 'สร้าง JD ใหม่', function () { app.go('#quest'); }, { icon: 'plus' })), onboard.checklist(), box]);
     api.call('positions.list').then(function (rows) {
       if (!rows.length) {
         ui.mount(box, h('section.card.empty', {}, h('h2', { text: 'ยังไม่มี JD' }),
-          h('p.muted', { text: 'เริ่มจากชื่อตำแหน่ง ตอบ 5 ข้อ ก็ได้ JD ร่างฟรี' }), ui.button('primary', 'สร้าง JD แรก', function () { app.go('#quest'); })));
+          h('p.muted', { text: 'เริ่มจากชื่อตำแหน่ง ตอบ 5 ข้อ ก็ได้ JD ร่างฟรี' }),
+          h('div.row', {}, ui.button('primary', 'สร้าง JD แรก', function () { app.go('#quest'); }),
+            app.me.hasSample ? ui.button('ghost', 'ดูตัวอย่าง JD ก่อน', function () { app.go('#sample'); }, { icon: 'jds' }) : null)));
         return;
       }
       ui.mount(box, rows.map(function (p) {

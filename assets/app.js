@@ -47,6 +47,7 @@
     var name = parts[0] || 'quest';
     var arg = parts.slice(1).join('/');
 
+    if (name === 'unsubscribe') { window.pages.unsubscribe(view, arg); return; }
     if (!api.hasToken()) {
       name = 'signin';
     } else if (!app.me) {
