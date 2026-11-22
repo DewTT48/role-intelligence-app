@@ -1,0 +1,427 @@
+/**
+ * api.js – the only file that knows where the backend lives.
+ * api.call(action, payload) -> Promise<data>; rejects with Error{code, message, ...}.
+ * Demo mode (no apiUrl in config.js, or ?demo=1) answers from an in-browser fake backend (demo-data.js).
+ */
+(function () {
+  var cfg = window.RI_CONFIG || {};
+  var demo = !cfg.apiUrl || /[?&]demo=1/.test(location.search);
+  var TOKEN_KEY = demo ? 'ri.demo.token' : 'ri.token';
+
+  function store(kind) {
+    try { return kind === 'session' ? sessionStorage : localStorage; } catch (e) { return null; }
+  }
+  function getToken() { try { return (store('local') || {}).getItem ? store('local').getItem(TOKEN_KEY) || '' : ''; } catch (e) { return ''; } }
+  function setToken(t) { try { if (t) store('local').setItem(TOKEN_KEY, t); else store('local').removeItem(TOKEN_KEY); } catch (e) { /* private mode */ } }
+
+  function fail(code, message, extra) {
+    var e = new Error(message);
+    e.code = code;
+    Object.keys(extra || {}).forEach(function (k) { e[k] = extra[k]; });
+    return e;
+  }
+
+  function remote(action, payload) {
+    return fetch(cfg.apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // avoids a CORS preflight on Apps Script
+      body: JSON.stringify({ action: action, payload: payload || {}, token: getToken() })
+    }).then(function (r) { return r.json(); }, function () {
+      throw fail('NETWORK', 'ติดต่อเซิร์ฟเวอร์ไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่');
+    }).then(function (res) {
+      if (!res.ok) throw fail(res.error.code, res.error.message, res.error);
+      return res.data;
+    });
+  }
+
+  // ======================= demo backend =======================
+  var D = window.RI_DEMO || {};
+  var db = (function () {
+    try { var s = sessionStorage.getItem('ri.demo.db'); if (s) return JSON.parse(s); } catch (e) { /* ignore */ }
+    return { user: null, org: { id: 'org_demo', name: '', business_type: '', main_goal: '' }, ledger: [], positions: [], versions: [], gens: [],
+      ai: { keys: { google: 'AIzaSyD0000000000000000000000000000k7Qp' }, primary: { provider: 'google', model: 'gemini-3.8-flash', effort: '' }, fallback: null, routes: {} } };
+  })();
+  function persist() { try { sessionStorage.setItem('ri.demo.db', JSON.stringify(db)); } catch (e) { /* ignore */ } }
+  var RANK = { bronze: 0, silver: 1, gold: 2 };
+  var TNAME = { bronze: 'Role Brief', silver: 'Role Profile', gold: 'Role Blueprint' };
+  var APPEND_KEYS = ['review_checklist', 'hr_usage_guidance', 'human_validation_points'];
+  var FREE = (D.pricing || {}).freeBriefPerMonth || 3;
+  var CREDITS = { bronze: 0, silver: 2, gold: 4 };
+  function now() { return new Date().toISOString(); }
+  function balance() { return Math.round(db.ledger.reduce(function (s, r) { return s + r.amount; }, 0) * 10) / 10; }
+  function bronzeUsed() { var m = now().slice(0, 7); return db.gens.filter(function (g) { return g.tier === 'bronze' && g.at.slice(0, 7) === m; }).length; }
+  function complete() { return !!(db.org.name && db.org.business_type && db.org.main_goal); }
+  var DEMO_SETS = {
+    core: [
+      ['ใส่ใจลูกค้า (Customer Focus)', 'ฟังความต้องการของลูกค้า แก้ปัญหาให้จบ และคิดถึงประสบการณ์ลูกค้าก่อนตัดสินใจ', '• ตอบคำถามลูกค้าภายในวันเดียวกัน\n• ตามเรื่องที่ลูกค้าร้องเรียนจนปิดได้\n• เสนอวิธีที่ลูกค้าสะดวกขึ้นเมื่อเห็นปัญหาซ้ำ', 'ธุรกิจค้าปลีกอยู่ได้เพราะลูกค้ากลับมาซื้อซ้ำ'],
+      ['ซื่อสัตย์และรับผิดชอบ (Integrity & Ownership)', 'ทำตามที่รับปาก ดูแลเงิน สินค้า และข้อมูลของบริษัทเหมือนเป็นของตัวเอง', '• ส่งงานตามที่รับปาก หรือแจ้งล่วงหน้าเมื่อทำไม่ทัน\n• รายงานความผิดพลาดของตัวเองทันที\n• นับและบันทึกเงินและสินค้าถูกต้องทุกครั้ง', 'งานหลายสาขาต้องไว้ใจกันได้โดยไม่ต้องตรวจทุกขั้น'],
+      ['ทำงานเป็นทีมข้ามสาขา (Cross-team Collaboration)', 'แบ่งปันข้อมูลและช่วยสาขาหรือแผนกอื่นให้เป้าหมายรวมสำเร็จ', '• แจ้งข้อมูลสต็อกหรือปัญหาที่สาขาอื่นควรรู้\n• ช่วยสาขาข้างเคียงเมื่อขาดคน\n• รับฟังข้อเสนอจากแผนกอื่นก่อนตัดสินใจ', 'การขยายสาขาต้องอาศัยหลายทีมทำงานไปทางเดียวกัน'],
+      ['ปรับปรุงงานอย่างต่อเนื่อง (Continuous Improvement)', 'มองหาจุดที่ทำให้งานเร็วขึ้น ถูกต้องขึ้น หรือประหยัดขึ้น แล้วลงมือทำ', '• เสนอวิธีลดขั้นตอนที่ซ้ำซ้อน\n• ทดลองวิธีใหม่ในขอบเขตเล็กก่อนขยาย\n• วัดผลก่อนและหลังปรับปรุง', 'ลดของขาดชั้นและต้นทุนต่อสาขาได้ทุกวัน'],
+      ['ยึดมาตรฐานเดียวกัน (Standard Discipline)', 'ทำตามมาตรฐานและขั้นตอนของบริษัทอย่างสม่ำเสมอทุกสาขา', '• ทำตามขั้นตอนมาตรฐานแม้ไม่มีคนตรวจ\n• ใช้แบบฟอร์มและระบบที่บริษัทกำหนด\n• บอกทีมเมื่อเห็นการทำนอกมาตรฐาน', 'ลูกค้าได้ประสบการณ์เดียวกันไม่ว่าจะเข้าสาขาไหน'],
+      ['เรียนรู้และปรับตัวเร็ว (Learning Agility)', 'เรียนรู้เครื่องมือและวิธีทำงานใหม่ และปรับตัวเมื่อสถานการณ์เปลี่ยน', '• ลองใช้ระบบใหม่ภายในสัปดาห์แรกที่เปิดใช้\n• ขอคำติชมแล้วนำไปปรับงาน\n• สรุปบทเรียนหลังงานที่ผิดพลาด', 'ตลาดค้าปลีกเปลี่ยนเร็ว ทีมที่ปรับตัวได้จะโตได้']
+    ],
+    leadership: [
+      ['พัฒนาทีม (Developing People)', 'สอนงาน ให้คำติชม และสร้างโอกาสให้ลูกน้องเติบโต', '• สอนงานลูกน้องใหม่จนทำเองได้\n• ให้คำติชมที่เจาะจงอย่างน้อยเดือนละครั้ง\n• มอบงานท้าทายให้คนที่พร้อม', 'การขยายสาขาต้องมีหัวหน้ารุ่นใหม่พร้อมขึ้น'],
+      ['กำหนดทิศทางและเป้าหมาย (Setting Direction)', 'แปลงเป้าหมายบริษัทเป็นเป้าหมายทีมที่ชัดและวัดได้', '• ตั้งเป้าหมายทีมรายเดือนที่วัดผลได้\n• อธิบายเหตุผลของเป้าหมายให้ทีมเข้าใจ\n• ทบทวนความคืบหน้ากับทีมทุกสัปดาห์', 'ทุกสาขาต้องเดินไปทางเดียวกับเป้าหมายบริษัท'],
+      ['ตัดสินใจหน้างาน (Decisive Judgment)', 'ตัดสินใจทันเวลาจากข้อมูลที่มี และรับผิดชอบผลการตัดสินใจ', '• ตัดสินใจปัญหาหน้างานภายในวันเดียวกัน\n• ใช้ข้อมูลยอดขายและสต็อกประกอบการตัดสินใจ\n• ยอมรับและแก้ไขเมื่อการตัดสินใจผิดพลาด', 'งานค้าปลีกรอไม่ได้ ช้าแล้วเสียยอดขาย'],
+      ['สร้างทีมที่ไว้ใจกัน (Building Trust)', 'สื่อสารเปิดเผย ปฏิบัติต่อทุกคนอย่างเป็นธรรม และรับฟังทีม', '• แจ้งข่าวสำคัญกับทีมก่อนที่จะรู้จากที่อื่น\n• ใช้เกณฑ์เดียวกันกับทุกคน\n• ถามความเห็นทีมก่อนเปลี่ยนวิธีทำงาน', 'ทีมที่ไว้ใจกันลาออกน้อยและทำงานได้เร็วกว่า'],
+      ['บริหารผลงาน (Managing Performance)', 'ติดตามผลงาน ชมเมื่อดี และแก้ไขเมื่อไม่ถึงเกณฑ์อย่างตรงไปตรงมา', '• คุยผลงานรายบุคคลทุกเดือน\n• ชมผลงานดีต่อหน้าทีม\n• ทำแผนปรับปรุงเมื่อผลงานต่ำกว่าเกณฑ์', 'ผลงานของสาขาขึ้นกับผลงานของทุกคนในทีม'],
+      ['บริหารการเปลี่ยนแปลง (Leading Change)', 'พาทีมผ่านการเปลี่ยนแปลงโดยอธิบายเหตุผลและช่วยให้ปรับตัวได้', '• อธิบายเหตุผลของการเปลี่ยนก่อนเริ่ม\n• ช่วยคนที่ปรับตัวช้าเป็นรายคน\n• ติดตามผลหลังเปลี่ยนและปรับแผน', 'บริษัทกำลังขยายตัว ระบบและวิธีทำงานเปลี่ยนบ่อย']
+    ]
+  };
+  function demoLimits(kind) {
+    var saved = db.org[kind === 'core' ? 'leadership' : 'core'] || [];
+    var other = saved.length || 3;
+    return { min: 3, max: Math.max(3, 10 - other), other: other, otherSaved: !!saved.length, total: 10 };
+  }
+  function useAi(kind) {
+    var day = now().slice(0, 10);
+    db.aiUse = db.aiUse && db.aiUse.day === day ? db.aiUse : { day: day, core: 0, leadership: 0 };
+    if (db.aiUse[kind] >= 5) throw fail('LIMITED', 'วันนี้ใช้ AI ช่วยชุดนี้ครบ 5 ครั้งแล้ว แก้ถ้อยคำหรือพิมพ์เองได้ หรือใช้ AI ใหม่พรุ่งนี้');
+    db.aiUse[kind]++;
+    return 5 - db.aiUse[kind];
+  }
+  function demoSet(kind) { return DEMO_SETS[kind].map(function (x) { return { competency: x[0], definition: x[1], behavioral_indicators: x[2], why_it_matters: x[3] }; }); }
+  var SET_TYPE = { core: 'Core', leadership: 'Managerial' };
+  function coreNames(items) { return (items || []).map(function (c) { return c.competency; }).sort().join('|'); }
+  function competencyStatus(jd) {
+    var comps = jd.sections.required_competencies;
+    var core = db.org.core || [], lead = db.org.leadership || [];
+    var out = { core: core.length ? 'current' : 'none', leadership: 'n/a' };
+    if (!comps) return out;
+    var of = function (t) { return comps.filter(function (c) { return c.type === t; }); };
+    if (core.length && coreNames(of('Core')) !== coreNames(core)) out.core = 'outdated';
+    if (of('Managerial').length) out.leadership = !lead.length ? 'none' : coreNames(of('Managerial')) === coreNames(lead) ? 'current' : 'outdated';
+    return out;
+  }
+  function withCompanySets(comps) {
+    var core = db.org.core || [], lead = db.org.leadership || [];
+    var hasMan = comps.some(function (c) { return c.type === 'Managerial'; });
+    var keep = comps.filter(function (c) { return c.type === 'Core' ? !core.length : c.type === 'Managerial' ? !(lead.length && hasMan) : true; });
+    return core.concat(lead.length && hasMan ? lead : []).concat(keep).sort(function (a, b) { var o = { Core: 1, Managerial: 2, Functional: 3 }; return o[a.type] - o[b.type]; });
+  }
+  function onboarding() {
+    db.prefs = db.prefs || { welcomeSeen: false, checklistHidden: false, tips: [] };
+    return { steps: { company: complete(), core: !!(db.org.core || []).length, leadership: !!(db.org.leadership || []).length,
+      firstJd: db.versions.length > 0, firstWord: !!db.wordDone }, prefs: JSON.parse(JSON.stringify(db.prefs)) };
+  }
+  function me() {
+    return { user: db.user, org: Object.assign({ complete: complete(), core: [], leadership: [], competencyLimits: { core: demoLimits('core'), leadership: demoLimits('leadership') } }, db.org),
+      credits: { balance: balance(), freeBronzeLeft: Math.max(0, FREE - bronzeUsed()), costs: D.costs, packs: D.packs, pricing: D.pricing },
+      onboarding: onboarding() };
+  }
+  function pos(id) { var p = db.positions.filter(function (x) { return x.id === id; })[0]; if (!p) throw fail('NOT_FOUND', 'ไม่พบตำแหน่งนี้'); return p; }
+  function view(p) {
+    var vs = db.versions.filter(function (v) { return v.positionId === p.id; });
+    var last = vs[vs.length - 1];
+    return Object.assign({}, p, { latestVersion: last ? last.version : 0, latestTier: last ? last.tier : '' });
+  }
+  function nextCode() {
+    var pre = db.org.code_prefix || 'JD-';
+    var max = 0;
+    db.positions.forEach(function (x) { var c = String(x.code || ''); if (c.indexOf(pre) === 0 && /^\d+$/.test(c.slice(pre.length))) max = Math.max(max, Number(c.slice(pre.length))); });
+    return pre + ('000' + (max + 1)).slice(-4);
+  }
+  function vers(id) { return db.versions.filter(function (v) { return v.positionId === id; }); }
+  function addVersion(id, tier, jd) {
+    var n = vers(id).length + 1;
+    db.versions.push({ positionId: id, version: n, tier: tier, jd: jd, created_at: now() });
+    return n;
+  }
+  function filled(v) { return Array.isArray(v) ? v.length > 0 : v !== undefined && v !== null && String(v).trim() !== ''; }
+  function price(p, tier) {
+    if (tier === 'bronze') { var left = Math.max(0, FREE - bronzeUsed()); return { tier: tier, credits: 0, reason: 'Role Brief ฟรี เหลือ ' + left + ' ครั้งเดือนนี้', blocked: !left }; }
+    var paid = p.paidTier;
+    var diff = Math.max(0, CREDITS[tier] - (paid ? CREDITS[paid] : 0));
+    var NAME = { bronze: 'Role Brief', silver: 'Role Profile', gold: 'Role Blueprint' };
+    var LABEL = { silver: 'Role Profile (พร้อมสรรหา + ไฟล์ Word)', gold: 'Role Blueprint (ฉบับเต็ม 19 หมวด + ไฟล์ Word)' };
+    if (diff) return { tier: tier, credits: diff, reason: paid ? 'อัปเกรดจาก ' + NAME[paid] + ' เป็น ' + LABEL[tier] + ' จ่ายเฉพาะส่วนต่าง' : 'สร้าง ' + LABEL[tier] };
+    var regens = db.gens.filter(function (g) { return g.positionId === p.id && g.tier === tier && g.charged === 0; }).length;
+    return regens < 2 ? { tier: tier, credits: 0, reason: 'สร้างใหม่ฟรี เหลือ ' + (2 - regens) + ' ครั้งสำหรับระดับนี้' } : { tier: tier, credits: CREDITS[tier], reason: 'ใช้สิทธิ์สร้างใหม่ฟรีครบแล้ว' };
+  }
+  function buildJd(p, tier) {
+    var q = D.questions;
+    var a = p.answers;
+    var answered = function (id) { var qq = q.questions.filter(function (x) { return x.id === id; })[0]; return qq.fields.some(function (f) { return filled(a[f]); }); };
+    var goldCount = q.questions.filter(function (x) { return x.tier === 'gold' && answered(x.id); }).length;
+    var order = [], omitted = [];
+    q.sections.forEach(function (s) {
+      if (RANK[s.tier] > RANK[tier]) return;
+      var ok = s.key === 'business_context_fit' ? !!(db.org.business_type || db.org.main_goal)
+        : s.key === 'job_evaluation_information_summary' ? goldCount >= 4 : s.question ? answered(s.question) : true;
+      if (ok) order.push(s.key); else omitted.push({ key: s.key, title: s.title, reason: 'ข้อมูลยังไม่พอ' });
+    });
+    var sections = {};
+    order.forEach(function (k) { sections[k] = D.sections[k]; });
+    if (sections.required_competencies) {
+      var comps = sections.required_competencies;
+      if (a.people_management_type !== 'DIRECT_REPORTS') comps = comps.filter(function (c) { return c.type !== 'Managerial'; });
+      sections.required_competencies = withCompanySets(comps);
+    }
+    return { tier: tier, title: a.position_title || '', department: a.department || '', reports_to: a.reports_to || '', sections: sections, order: order, omitted: omitted, meta: { provider: 'demo', model: 'demo' } };
+  }
+  function demoAiSettings() {
+    var L = { google: 'Google Gemini', openai: 'OpenAI', anthropic: 'Anthropic Claude' };
+    var P = { google: 'AIza', openai: 'sk-', anthropic: 'sk-ant-' };
+    return { providers: Object.keys(L).map(function (id) { var k = db.ai.keys[id]; return { id: id, label: L[id], prefix: P[id], hasKey: !!k, maskedKey: k ? k.slice(0, 6) + '••••' + k.slice(-4) : '' }; }),
+      primary: db.ai.primary, fallback: db.ai.fallback, routes: db.ai.routes, tasks: ['full_jd', 'ai_edit', 'suggest_chips', 'org_competency', 'quality_check'] };
+  }
+  function demoCheck(p) {
+    var key = (p.apiKey || '').trim() || db.ai.keys[p.provider] || '';
+    var checks = [{ id: 'format', label: 'รูปแบบ key ตรงกับค่ายที่เลือก', status: key ? 'pass' : 'fail', detail: key ? 'โหมดตัวอย่าง' : 'ยังไม่ได้ใส่ API key' }];
+    if (!key) return { ok: false, checks: checks, models: [] };
+    var models = { google: ['gemini-3.8-flash', 'gemini-3.8-flash-lite'], openai: ['[รายชื่อจาก API]'], anthropic: ['claude-haiku-5-5', 'claude-opus-5-5', 'claude-sonnet-5-5'] }[p.provider];
+    checks.push({ id: 'key', label: 'key ใช้งานได้', status: 'pass', detail: 'ตัวอย่าง' });
+    checks.push({ id: 'model', label: 'โมเดลนี้เปิดให้ key นี้ใช้', status: models.indexOf(p.model) >= 0 ? 'pass' : 'fail', detail: p.model || '-' });
+    var ok = models.indexOf(p.model) >= 0;
+    if (ok) checks.push({ id: 'generate', label: 'ทดลองสร้าง JSON ตามโครง', status: 'pass', detail: 'ตัวอย่าง' });
+    return { ok: ok, checks: checks, models: models };
+  }
+
+  var handlers = {
+    'auth.requestCode': function (p) { if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(p.email || '')) throw fail('BAD_EMAIL', 'กรอกอีเมลให้ถูกต้อง'); return { sent: true }; },
+    'auth.verifyCode': function (p) {
+      if (String(p.code).trim() !== '123456') throw fail('CODE_WRONG', 'รหัสไม่ถูกต้อง (โหมดตัวอย่างใช้ 123456)');
+      var isNew = !db.user;
+      if (isNew) { db.user = { id: 'usr_demo', email: p.email, display_name: p.email.split('@')[0], role: 'admin' }; db.ledger.push({ action: 'signup_bonus', amount: 3, note: 'เครดิตฟรีเมื่อสมัคร', at: now() }); }
+      return { token: 'demo-token', isNew: isNew, me: me() };
+    },
+    'auth.me': function () { if (!db.user) throw fail('SIGNED_OUT', 'กรุณาเข้าสู่ระบบอีกครั้ง'); return me(); },
+    'auth.logout': function () { return { loggedOut: true }; },
+    'user.prefs': function (p) {
+      var o = onboarding();
+      if (p.welcomeSeen !== undefined) db.prefs.welcomeSeen = !!p.welcomeSeen;
+      if (p.checklistHidden !== undefined) db.prefs.checklistHidden = !!p.checklistHidden;
+      if (p.tip && db.prefs.tips.indexOf(p.tip) < 0) db.prefs.tips.push(p.tip);
+      return onboarding();
+    },
+    'org.update': function (p) {
+      var was = complete();
+      ['name', 'business_type', 'main_goal', 'code_prefix'].forEach(function (k) { if (p[k] !== undefined) db.org[k] = String(p[k]).trim(); });
+      var bonus = 0;
+      if (!was && complete() && !db.ledger.some(function (r) { return r.action === 'company_profile_bonus'; })) { db.ledger.push({ action: 'company_profile_bonus', amount: 1, note: 'โบนัสกรอกข้อมูลบริษัท', at: now() }); bonus = 1; }
+      return { bonus: bonus, me: me() };
+    },
+    'org.competency.suggest': function (p) {
+      if (!db.org.business_type) throw fail('NEED_INPUT', 'กรอก "ธุรกิจทำอะไร" ก่อน AI จึงช่วยให้ตรงกับบริษัทได้');
+      var kind = p.kind === 'leadership' ? 'leadership' : 'core';
+      var left = useAi(kind);
+      var kept = (p.locked || []).map(function (c) { return String(c.competency).trim().toLowerCase(); });
+      var want = Math.max(3, 6 - kept.length);
+      var items = demoSet(kind).filter(function (c) { return kept.indexOf(c.competency.toLowerCase()) < 0; }).slice(0, want);
+      return { items: items, cached: false, left: left };
+    },
+    'org.competency.write': function (p) {
+      var name = String(p.competency || '').trim();
+      if (!name) throw fail('NEED_INPUT', 'ใส่ชื่อ Competency ก่อน แล้วให้ AI ช่วยเขียน');
+      if (!db.org.business_type) throw fail('NEED_INPUT', 'กรอก "ธุรกิจทำอะไร" ก่อน AI จึงช่วยให้ตรงกับบริษัทได้');
+      var left = useAi(p.kind === 'leadership' ? 'leadership' : 'core');
+      return { left: left, item: { competency: name, definition: 'แสดงออกเรื่อง "' + name + '" ในงานประจำวันอย่างสม่ำเสมอ จนทีมและลูกค้าเห็นได้ชัด (ข้อความตัวอย่าง)',
+        behavioral_indicators: '• ตัวอย่างพฤติกรรมที่ 1 ของ ' + name + '\n• ตัวอย่างพฤติกรรมที่ 2\n• ตัวอย่างพฤติกรรมที่ 3', why_it_matters: 'ช่วยให้บริษัทไปถึงเป้าหมายปีนี้ (ข้อความตัวอย่าง)' } };
+    },
+    'org.competency.save': function (p) {
+      var kind = p.kind === 'leadership' ? 'leadership' : 'core';
+      var items = (p.items || []).filter(function (c) { return String(c.competency || '').trim(); }).map(function (c) {
+        var beh = String(c.behavioral_indicators || '').split(/\n|•/).map(function (x) { return x.trim(); }).filter(Boolean).map(function (x) { return '• ' + x; }).join('\n');
+        return { competency: String(c.competency).trim(), type: SET_TYPE[kind], definition: String(c.definition || '').trim(), behavioral_indicators: beh, why_it_matters: String(c.why_it_matters || '').trim() };
+      });
+      var L = demoLimits(kind);
+      if (items.length < 3 || items.length > L.max) throw fail('BAD_VALUE', 'เลือก 3–' + L.max + ' ข้อ (ตอนนี้ ' + items.length + ' ข้อ) · Core และ Leadership รวมกันได้ไม่เกิน 10 ข้อ');
+      var bad = items.filter(function (c) { return !c.definition || !c.behavioral_indicators; })[0];
+      if (bad) throw fail('BAD_VALUE', 'ใส่คำนิยามและตัวอย่างพฤติกรรมของ "' + bad.competency + '" ด้วย');
+      db.org[kind] = items;
+      var action = kind + '_competency_bonus';
+      var bonus = 0;
+      if (!db.ledger.some(function (r) { return r.action === action; })) { db.ledger.push({ action: action, amount: 1, note: 'โบนัสกำหนด ' + (kind === 'core' ? 'Core' : 'Leadership') + ' Competency ของบริษัท', at: now() }); bonus = 1; }
+      return { bonus: bonus, items: items, me: me() };
+    },
+    'jd.competency.apply': function (p) {
+      var vs = db.versions.filter(function (v) { return v.positionId === p.positionId; });
+      var last = vs[vs.length - 1];
+      if (Number(p.version) !== last.version) throw fail('STALE_VERSION', 'มีการแก้ JD นี้จากที่อื่นแล้ว กรุณาโหลดหน้าใหม่');
+      var jd = JSON.parse(JSON.stringify(last.jd));
+      jd.sections.required_competencies = withCompanySets(jd.sections.required_competencies);
+      db.versions.push({ positionId: p.positionId, version: last.version + 1, tier: last.tier, jd: jd, created_at: now() });
+      return { version: last.version + 1, jd: jd };
+    },
+    'quest.questions': function () { return D.questions; },
+    'quest.suggest': function (p) { return { items: (D.chips || {})[p.question] || [], cached: true }; },
+    'quest.suggestAll': function () { return { chips: D.chips || {}, cached: true }; },
+    'quest.suggestStage': function (p) {
+      var qsByStage = { 1: ['purpose', 'responsibilities'], 2: ['outputs', 'kpi', 'qualifications'], 3: ['scope', 'decision', 'relationships', 'complexity', 'conditions', 'risk'] };
+      var out = {};
+      (qsByStage[p.stage] || []).forEach(function (q) { out[q] = (D.chips || {})[q] || []; });
+      return { stage: p.stage, chips: out, cached: true };
+    },
+    'positions.list': function () {
+      db.positions.forEach(function (x) { if (!x.code) x.code = nextCode(); });
+      return db.positions.map(view).reverse();
+    },
+    'positions.setCode': function (p) {
+      var row = pos(p.id);
+      var code = String(p.code || '').trim();
+      if (!/^[A-Za-z0-9ก-๙._\-\/]{1,30}$/.test(code)) throw fail('BAD_VALUE', 'รหัสใช้ได้ 1–30 ตัว: ตัวอักษร ตัวเลข และ - _ . /');
+      if (db.positions.some(function (x) { return x !== row && String(x.code).toLowerCase() === code.toLowerCase(); })) throw fail('CODE_TAKEN', 'รหัส ' + code + ' มีตำแหน่งอื่นใช้แล้ว');
+      row.code = code;
+      return view(row);
+    },
+    'positions.duplicate': function (p) {
+      var src = pos(p.id);
+      var full = p.mode === 'full';
+      var last = vers(src.id).slice(-1)[0];
+      if (full && !last) throw fail('NOT_FOUND', 'ตำแหน่งนี้ยังไม่มี JD ให้คัดลอก ใช้แบบคัดลอกคำตอบแทน');
+      if (full && balance() < 1) throw fail('NOT_ENOUGH_CREDITS', 'เครดิตไม่พอ', { needed: 1, balance: balance() });
+      var title = String(p.title || '').trim() || src.title + ' (สำเนา)';
+      var row = { id: 'pos_' + Date.now(), status: 'draft', paidTier: '', code: nextCode(), answers: Object.assign({}, src.answers, { position_title: title }),
+        skipped: (src.skipped || []).slice(), title: title, department: src.department, updated_at: now() };
+      db.positions.push(row);
+      if (full) {
+        db.ledger.push({ action: 'jd_duplicate', amount: -1, note: src.code + ' → ' + row.code, at: now() });
+        var jd = JSON.parse(JSON.stringify(last.jd));
+        jd.title = title;
+        jd.meta = Object.assign({}, jd.meta, { copied_from: src.code + ' Rev. ' + last.version });
+        delete jd.meta.edit_note;
+        addVersion(row.id, last.tier, jd);
+        row.paidTier = last.tier === 'bronze' ? '' : last.tier;
+      }
+      return { position: view(row), charged: full ? 1 : 0, credits: me().credits };
+    },
+    'jd.versions': function (p) {
+      return vers(p.positionId).map(function (v, i) {
+        var m = v.jd.meta || {};
+        var note = m.edit_note || (m.restored_from ? 'กลับไปใช้ Rev. ' + m.restored_from : m.copied_from ? 'คัดลอกจาก ' + m.copied_from
+          : m.upgraded_from ? 'อัปเกรดเป็น ' + TNAME[v.tier] + ' (เพิ่มหมวดใหม่ หมวดเดิมไม่เปลี่ยน)' : (i ? 'สร้างใหม่ทั้งฉบับ ' : 'สร้าง ') + TNAME[v.tier]);
+        return { version: v.version, tier: v.tier, note: note, created_at: v.created_at, by: db.user ? db.user.email : '' };
+      }).reverse();
+    },
+    'jd.restore': function (p) {
+      var list = vers(p.positionId);
+      var old = list.filter(function (v) { return v.version === Number(p.version); })[0];
+      if (!old) throw fail('NOT_FOUND', 'ไม่พบเวอร์ชันนี้');
+      if (old === list[list.length - 1]) throw fail('ALREADY_LATEST', 'นี่คือฉบับล่าสุดอยู่แล้ว');
+      var jd = JSON.parse(JSON.stringify(old.jd));
+      jd.meta = Object.assign({}, jd.meta, { restored_from: old.version });
+      delete jd.meta.edit_note;
+      return { version: addVersion(p.positionId, old.tier, jd), tier: old.tier, jd: jd };
+    },
+    'positions.get': function (p) { return view(pos(p.id)); },
+    'positions.save': function (p) {
+      var row = p.id ? pos(p.id) : null;
+      if (!row) { row = { id: 'pos_' + Date.now(), status: 'draft', paidTier: '', code: nextCode() }; db.positions.push(row); }
+      row.answers = p.answers || {}; row.skipped = p.skipped || [];
+      row.title = row.answers.position_title || ''; row.department = row.answers.department || ''; row.updated_at = now();
+      return view(row);
+    },
+    'positions.delete': function (p) { db.positions = db.positions.filter(function (x) { return x.id !== p.id; }); return { deleted: true }; },
+    'jd.quote': function (p) { return price(pos(p.positionId), p.tier); },
+    'jd.generate': function (p) {
+      var row = pos(p.positionId);
+      var pr = price(row, p.tier);
+      if (pr.blocked) throw fail('BRONZE_LIMIT', pr.reason);
+      if (pr.credits > balance()) throw fail('NOT_ENOUGH_CREDITS', 'เครดิตไม่พอ', { needed: pr.credits, balance: balance() });
+      if (pr.credits) db.ledger.push({ action: 'jd_' + p.tier, amount: -pr.credits, note: row.title + ' · ' + p.tier, at: now() });
+      db.gens.push({ positionId: row.id, tier: p.tier, charged: pr.credits, at: now() });
+      var jd = buildJd(row, p.tier);
+      // Upgrade: existing sections stay exactly as they are; summary sections get extra items.
+      var last = vers(row.id).slice(-1)[0];
+      var upgraded = !!(last && RANK[p.tier] > RANK[last.tier]);
+      if (upgraded) {
+        last.jd.order.forEach(function (k) {
+          if (APPEND_KEYS.indexOf(k) >= 0) jd.sections[k] = last.jd.sections[k].concat(['(ข้อเพิ่มสำหรับหมวดใหม่ · โหมดตัวอย่าง)']);
+          else jd.sections[k] = last.jd.sections[k];
+        });
+        jd.meta = Object.assign({}, jd.meta, { upgraded_from: last.tier });
+      }
+      var version = addVersion(row.id, p.tier, jd);
+      if (p.tier !== 'bronze' && (!row.paidTier || RANK[p.tier] > RANK[row.paidTier])) row.paidTier = p.tier;
+      return { version: version, jd: jd, charged: pr.credits, upgraded: upgraded, credits: me().credits };
+    },
+    'jd.get': function (p) {
+      var vs = vers(p.positionId);
+      var v = p.version ? vs.filter(function (x) { return x.version === Number(p.version); })[0] : vs[vs.length - 1];
+      if (!v) throw fail('NOT_FOUND', 'ยังไม่มี JD');
+      var used = (db.edits || []).filter(function (e) { return e.positionId === p.positionId; }).length;
+      return { version: v.version, tier: v.tier, jd: v.jd, created_at: v.created_at, versions: vs.length, latest: v === vs[vs.length - 1],
+        code: pos(p.positionId).code || '', changedSections: [],
+        freeAiEdits: Math.max(0, 3 - used), editCosts: { item: 0.2, section: 0.5 }, competencyStatus: competencyStatus(v.jd) };
+    },
+    'jd.edit.saveMany': function (p) {
+      var vs = vers(p.positionId);
+      var last = vs[vs.length - 1];
+      if (Number(p.version) !== last.version) throw fail('STALE_VERSION', 'มีการแก้ JD นี้จากที่อื่นแล้ว กรุณาโหลดหน้าใหม่');
+      var keys = Object.keys(p.changes || {});
+      if (!keys.length) throw fail('NEED_INPUT', 'ยังไม่มีอะไรเปลี่ยน');
+      var jd = JSON.parse(JSON.stringify(last.jd));
+      keys.forEach(function (k) { jd.sections[k] = p.changes[k]; });
+      var titles = keys.map(function (k) { var s = D.questions.sections.filter(function (x) { return x.key === k; })[0]; return s ? s.title : k; });
+      jd.meta = Object.assign({}, jd.meta, { edit_note: 'แก้เอง: ' + titles.join(', ') });
+      delete jd.meta.restored_from;
+      return { version: addVersion(p.positionId, last.tier, jd), tier: last.tier, jd: jd };
+    },
+    'jd.edit.save': function (p) {
+      var vs = db.versions.filter(function (v) { return v.positionId === p.positionId; });
+      var last = vs[vs.length - 1];
+      if (Number(p.version) !== last.version) throw fail('STALE_VERSION', 'มีการแก้ JD นี้จากที่อื่นแล้ว กรุณาโหลดหน้าใหม่');
+      var jd = JSON.parse(JSON.stringify(last.jd));
+      jd.sections[p.sectionKey] = p.value;
+      jd.meta = Object.assign({}, jd.meta, { edit_note: p.note || 'แก้ด้วยตัวเอง' });
+      delete jd.meta.restored_from;
+      db.versions.push({ positionId: p.positionId, version: last.version + 1, tier: last.tier, jd: jd, created_at: now() });
+      return { version: last.version + 1, jd: jd };
+    },
+    'jd.edit.ai': function (p) {
+      if (!String(p.instruction || '').trim()) throw fail('NEED_INPUT', 'บอก AI ว่าอยากให้แก้อย่างไร');
+      db.edits = db.edits || [];
+      var used = db.edits.filter(function (e) { return e.positionId === p.positionId; }).length;
+      var isItem = p.itemIndex !== undefined;
+      var cost = used < 3 ? 0 : (isItem ? 0.2 : 0.5);
+      if (cost > balance()) throw fail('NOT_ENOUGH_CREDITS', 'เครดิตไม่พอ', { needed: cost, balance: balance() });
+      if (cost) db.ledger.push({ action: isItem ? 'ai_edit_item' : 'ai_edit_section', amount: -cost, note: p.sectionKey, at: now() });
+      db.edits.push({ positionId: p.positionId });
+      var vs = db.versions.filter(function (v) { return v.positionId === p.positionId; });
+      var cur = vs[vs.length - 1].jd.sections[p.sectionKey];
+      var target = isItem ? cur[p.itemIndex] : cur;
+      var tweak = function (x) {
+        if (typeof x === 'string') return x + ' (ปรับตาม: ' + p.instruction + ')';
+        if (Array.isArray(x)) return x.map(tweak);
+        var o = {}; Object.keys(x).forEach(function (k, i) { o[k] = i === 0 ? tweak(x[k]) : x[k]; }); return o;
+      };
+      return { proposal: tweak(target), scope: isItem ? 'item' : 'section', itemIndex: isItem ? p.itemIndex : null, charged: cost, freeLeft: Math.max(0, 3 - used - 1), credits: me().credits };
+    },
+    'jd.exportDocx': function () { db.wordDone = true; throw fail('DEMO', 'โหมดตัวอย่างดาวน์โหลดไฟล์ Word ไม่ได้ ใช้ได้เมื่อเชื่อมระบบจริง'); },
+    'credits.history': function () { return db.ledger.slice().reverse().map(function (r, i) { return { id: 'l' + i, action: r.action, amount: r.amount, note: r.note, created_at: r.at }; }); },
+    'ai.settings.get': demoAiSettings,
+    'ai.models.list': function (p) { return { provider: p.provider, models: demoCheck(Object.assign({ model: 'x' }, p)).models }; },
+    'ai.connection.check': demoCheck,
+    'ai.connection.save': function (p) {
+      var r = demoCheck(p);
+      if (!r.ok) return { saved: false, check: r };
+      if ((p.apiKey || '').trim()) db.ai.keys[p.provider] = p.apiKey.trim();
+      db.ai[p.role === 'fallback' ? 'fallback' : 'primary'] = { provider: p.provider, model: p.model, effort: p.effort || '' };
+      return { saved: true, check: r, settings: demoAiSettings() };
+    },
+    'ai.routes.save': function (p) { db.ai.routes = p.routes || {}; return { saved: true, routes: db.ai.routes }; }
+  };
+
+  function local(action, payload) {
+    var delay = action === 'jd.generate' ? 2500 : action === 'quest.suggest' ? 600 : 250;
+    return new Promise(function (resolve, reject) {
+      setTimeout(function () {
+        try {
+          var hnd = handlers[action];
+          if (!hnd) throw fail('NOT_FOUND', 'ไม่รู้จักคำสั่ง ' + action);
+          var out = JSON.parse(JSON.stringify(hnd(payload || {})));
+          persist();
+          resolve(out);
+        } catch (e) { reject(e); }
+      }, delay);
+    });
+  }
+
+  window.api = {
+    demo: demo,
+    call: function (action, payload) { return demo ? local(action, payload) : remote(action, payload); },
+    setToken: setToken,
+    hasToken: function () { return !!getToken(); }
+  };
+})();

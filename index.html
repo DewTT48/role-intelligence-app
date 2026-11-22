@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Role Intelligence</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%231B3A6B'/%3E%3Ctext x='9' y='50' font-family='Anton,Impact,Arial Narrow,sans-serif' font-size='44' fill='%23fff'%3ERI%3C/text%3E%3Crect x='47' y='42' width='8' height='8' fill='%23E0187A'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Anuphan:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="assets/styles.css?v=20261122u">
+</head>
+<body>
+<div class="shell">
+  <aside class="side" id="side" hidden>
+    <a class="brand" href="#quest" aria-label="Role Intelligence">
+      <span class="wordmark" aria-hidden="true">RI<span class="wm-dot"></span></span>
+      <span class="brand-text"><strong>Role Intelligence</strong><small class="tagline">Blueprint your roles<span class="wm-dot"></span></small></span>
+    </a>
+    <nav class="nav" aria-label="เมนูหลัก">
+      <a href="#quest" data-route="quest">สร้าง JD</a>
+      <a href="#jds" data-route="jds">JD ของฉัน</a>
+      <a href="#credits" data-route="credits">เครดิต</a>
+      <a href="#company" data-route="company">ข้อมูลบริษัท</a>
+      <a href="#ai-settings" data-route="ai-settings" id="nav-admin" hidden>ตั้งค่า AI</a>
+    </nav>
+    <div class="credit-box" id="credit-box"></div>
+    <div class="side-foot">
+      <span id="who" class="muted"></span>
+      <button type="button" class="link-btn" id="logout">ออกจากระบบ</button>
+    </div>
+    <div id="demo-badge" class="demo-badge" hidden>โหมดตัวอย่าง · ข้อมูลไม่ถูกบันทึกจริง</div>
+  </aside>
+  <main id="view" class="main" tabindex="-1"></main>
+</div>
+<script src="config.js?v=20261122u"></script>
+<script src="assets/demo-data.js?v=20261122u"></script>
+<script src="assets/api.js?v=20261122u"></script>
+<script src="assets/ui.js?v=20261122u"></script>
+<script src="assets/pages-account.js?v=20261122u"></script>
+<script src="assets/pages-onboard.js?v=20261122u"></script>
+<script src="assets/pages-quest.js?v=20261122u"></script>
+<script src="assets/pages-jd.js?v=20261122u"></script>
+<script src="assets/pages-admin.js?v=20261122u"></script>
+<script src="assets/thai-wrap.js?v=20261122u"></script>
+<script src="assets/app.js?v=20261122u"></script>
+</body>
+</html>
