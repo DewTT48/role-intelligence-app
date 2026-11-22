@@ -186,6 +186,15 @@
       if (isNew) { db.user = { id: 'usr_demo', email: p.email, display_name: p.email.split('@')[0], role: 'admin' }; db.ledger.push({ action: 'signup_bonus', amount: 3, note: 'เครดิตฟรีเมื่อสมัคร', at: now() }); }
       return { token: 'demo-token', isNew: isNew, me: me() };
     },
+    'user.profile': function (p) {
+      if (p.display_name !== undefined) { if (!String(p.display_name).trim()) throw fail('BAD_VALUE', 'ใส่ชื่อที่ใช้แสดง'); db.user.display_name = String(p.display_name).trim().slice(0, 60); }
+      if (p.job_title !== undefined) db.user.job_title = String(p.job_title).trim().slice(0, 80);
+      if (p.phone !== undefined) { var ph = String(p.phone).trim(); if (ph && !/^[+0-9][0-9 \-]{7,18}$/.test(ph)) throw fail('BAD_VALUE', 'เบอร์โทรไม่ถูกต้อง ใช้ตัวเลข เว้นวรรค หรือ - ได้'); db.user.phone = ph; }
+      if (p.remindersOff !== undefined) db.user.remindersOff = !!p.remindersOff;
+      return me();
+    },
+    'user.deleteRequest': function (p) { if (db.user.deleteRequestedAt) return { requestedAt: db.user.deleteRequestedAt, already: true }; db.user.deleteRequestedAt = now(); db.user.remindersOff = true; return { requestedAt: db.user.deleteRequestedAt, already: false }; },
+    'user.deleteCancel': function () { db.user.deleteRequestedAt = ''; return me(); },
     'auth.me': function () { if (!db.user) throw fail('SIGNED_OUT', 'กรุณาเข้าสู่ระบบอีกครั้ง'); return me(); },
     'auth.logout': function () { return { loggedOut: true }; },
     'user.prefs': function (p) {

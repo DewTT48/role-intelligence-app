@@ -26,14 +26,25 @@
           h('div.row', {}, ui.button('ghost', 'เปลี่ยนอีเมล', function () { state.step = 'email'; state.msg = null; render(); }),
             ui.button('ghost', 'ส่งรหัสอีกครั้ง', function (e) { sendCode(e.target); })));
 
+      // Left: what this is (Persone-style poster). Right: the form.
       ui.mount(view, h('div.signin', {},
-        h('div.signin-card', {},
-          h('div.brand.big', { 'aria-label': 'Role Intelligence' }, h('span.wordmark', { 'aria-hidden': 'true' }, 'RI', h('span.wm-dot')),
-            h('span.brand-text', {}, h('strong', { text: 'Role Intelligence' }), h('small.tagline', {}, 'Blueprint your roles', h('span.wm-dot')))),
-          h('h1', { text: 'เข้าสู่ระบบ' }),
-          h('p.muted', { text: 'สมัครฟรี กรอกข้อมูลบริษัทครบ ได้ Role Blueprint ฉบับเต็มฟรี 1 ฉบับ และร่าง Role Brief ได้ฟรีทุกเดือน' }),
-          form,
-          api.demo ? h('p.muted.small', { text: 'โหมดตัวอย่าง: ใช้รหัส 123456' }) : null)));
+        h('section.signin-hero', { 'aria-label': 'Role Intelligence' },
+          h('div.brand.big', {}, h('span.wordmark', { 'aria-hidden': 'true' }, 'RI', h('span.wm-dot')),
+            h('span.brand-text', {}, h('strong', { text: 'Role Intelligence' }))),
+          h('p.hero-words', { 'aria-label': 'Blueprint your roles' },
+            h('span', { text: 'Blueprint' }), h('span.dark', { text: 'Your' }), h('span', {}, 'Roles', h('span.wm-dot'))),
+          h('p.hero-lead', {}, h('span', { text: 'เขียน JD ภาษาไทยที่ใช้งานได้จริง ตอบทีละข้อ' }), h('span', { text: 'AI เสนอตัวเลือกให้กดเลือก แล้วระบบเขียนให้' })),
+          h('ul.hero-points', {},
+            h('li', { text: 'สมัครฟรี ใช้อีเมลอย่างเดียว ไม่ต้องตั้งรหัสผ่าน' }),
+            h('li', { text: 'ร่าง Role Brief ได้ฟรีทุกเดือน' }),
+            h('li', { text: 'กรอกข้อมูลบริษัทครบ ได้เครดิตพอทำ Role Blueprint ฉบับเต็ม 1 ฉบับ' }))),
+        h('section.signin-form', {},
+          h('div.signin-card', {},
+            h('span.eyebrow', { text: state.step === 'email' ? 'เข้าสู่ระบบ / สมัครใหม่' : 'ขั้นที่ 2 จาก 2' }),
+            h('h1', { text: state.step === 'email' ? 'เริ่มด้วยอีเมลของคุณ' : 'กรอกรหัสจากอีเมล' }),
+            h('p.muted', { text: state.step === 'email' ? 'ถ้ายังไม่มีบัญชี ระบบสร้างให้อัตโนมัติ เราส่งรหัส 6 หลักไปทางอีเมล' : 'ไม่เห็นอีเมล ลองดูในโฟลเดอร์สแปมหรือโปรโมชัน' }),
+            form,
+            api.demo ? h('p.muted.small', { text: 'โหมดตัวอย่าง: ใช้รหัส 123456' }) : null))));
       (state.step === 'email' ? email : code).focus();
 
       function sendCode(btn) {
@@ -319,5 +330,78 @@
     function priceRow(label, cost) {
       return h('div.price-row', {}, h('span', { text: label }), h('strong', { text: typeof cost === 'number' ? cost + ' เครดิต' : cost }));
     }
+  };
+})();
+
+/* "บัญชีของฉัน": name, job title, optional phone, email setting, deletion request. Only what the app uses. */
+(function () {
+  var h = ui.h;
+  window.pages.account = function (view) {
+    var u = app.me.user;
+    var msg = h('div');
+    var name = h('input', { type: 'text', id: 'acc-name', maxlength: '60', value: u.display_name || '', autocomplete: 'name' });
+    var job = h('input', { type: 'text', id: 'acc-job', maxlength: '80', value: u.job_title || '', placeholder: 'เช่น HR Manager, เจ้าของกิจการ' });
+    var phone = h('input', { type: 'tel', id: 'acc-phone', maxlength: '20', value: u.phone || '', placeholder: 'เช่น 081-234-5678', autocomplete: 'tel', inputmode: 'tel' });
+    var save = ui.button('primary', 'บันทึก', function () {
+      ui.busy(save, 'กำลังบันทึก…', function () {
+        return api.call('user.profile', { display_name: name.value, job_title: job.value, phone: phone.value }).then(function (me) {
+          app.setMe(me); ui.mount(msg, null); ui.toast('บันทึกแล้ว');
+        });
+      }).catch(function (e) { ui.mount(msg, ui.note('err', ui.errorText(e))); });
+    });
+
+    var remind = h('input', { type: 'checkbox', id: 'acc-remind', checked: !u.remindersOff, onchange: function () {
+      api.call('user.profile', { remindersOff: !remind.checked }).then(function (me) {
+        app.setMe(me); ui.toast(remind.checked ? 'จะได้รับอีเมลแนะนำการใช้งาน' : 'ปิดอีเมลแนะนำการใช้งานแล้ว');
+      }, function (e) { remind.checked = !remind.checked; ui.toast(ui.errorText(e), 'err'); });
+    } });
+
+    function deletionCard() {
+      var box = h('section.card.danger-zone', { 'aria-labelledby': 'acc-del-h' });
+      function draw() {
+        var at = app.me.user.deleteRequestedAt;
+        ui.mount(box, [
+          h('h2', { id: 'acc-del-h', text: 'ลบบัญชี' }),
+          at ? ui.note('warn', 'ส่งคำขอลบบัญชีแล้วเมื่อ ' + new Date(at).toLocaleString('th-TH') + ' ผู้ดูแลจะลบข้อมูลของคุณและแจ้งกลับทางอีเมล') :
+            h('p.muted', { text: 'ส่งคำขอให้ผู้ดูแลลบบัญชีและข้อมูลของคุณ (JD ข้อมูลบริษัท และเครดิตที่เหลือ) ระบบยังไม่ลบทันที เพื่อกันการกดพลาด' }),
+          h('div.row', {}, at ? ui.button('', 'ยกเลิกคำขอ', function () {
+            api.call('user.deleteCancel').then(function (me) { app.setMe(me); draw(); ui.toast('ยกเลิกคำขอแล้ว'); }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+          }) : ui.button('danger', 'ขอลบบัญชี', function () {
+            var reason = h('textarea', { id: 'acc-del-reason', rows: '3', maxlength: '300', placeholder: 'ไม่บังคับ' });
+            ui.confirmBox('ขอลบบัญชี?', h('div.stack', {},
+              h('p', { text: 'ผู้ดูแลจะลบบัญชี ' + app.me.user.email + ' และข้อมูลทั้งหมด รวมถึงเครดิตที่เหลือ ลบแล้วกู้คืนไม่ได้' }),
+              h('label.field', { for: 'acc-del-reason' }, 'บอกเหตุผลได้ (ช่วยให้เราปรับปรุง)', reason)), 'ส่งคำขอ').then(function (yes) {
+              if (!yes) return;
+              api.call('user.deleteRequest', { reason: reason.value }).then(function (r) {
+                app.me.user.deleteRequestedAt = r.requestedAt; app.me.user.remindersOff = true; remind.checked = false; draw();
+                ui.toast('ส่งคำขอแล้ว');
+              }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+            });
+          }))
+        ]);
+      }
+      draw();
+      return box;
+    }
+
+    ui.mount(view, [
+      ui.pageHead('ข้อมูลของคุณเอง ไม่ใช่ของบริษัท', 'บัญชีของฉัน'),
+      h('div.grid-2', {},
+        h('section.card', { 'aria-labelledby': 'acc-h' },
+          h('h2', { id: 'acc-h', text: 'ข้อมูลผู้ใช้' }),
+          h('div.field-static', {}, h('span.muted', { text: 'อีเมลที่ใช้เข้าระบบ' }), h('strong', { text: u.email })),
+          h('label.field', { for: 'acc-name' }, 'ชื่อที่ใช้แสดง', name),
+          h('label.field', { for: 'acc-job' }, 'ตำแหน่งของคุณ (ไม่บังคับ)', job),
+          h('label.field', { for: 'acc-phone' }, 'เบอร์โทร (ไม่บังคับ)', phone),
+          h('p.small.muted', { text: 'เบอร์โทรใช้ติดต่อเรื่องการใช้งานระบบเท่านั้น ไม่ส่งต่อให้ใคร ลบออกได้ทุกเมื่อ' }),
+          msg, h('div.row.end', {}, save)),
+        h('div.stack', {},
+          h('section.card', { 'aria-labelledby': 'acc-mail-h' },
+            h('h2', { id: 'acc-mail-h', text: 'อีเมลจากระบบ' }),
+            h('label.check-line', { for: 'acc-remind' }, remind, h('span', {}, h('strong', { text: 'อีเมลแนะนำการใช้งาน' }),
+              h('span.small.muted.block', { text: 'คำแนะนำช่วงเริ่มต้น ไม่เกิน 3 ฉบับ' }))),
+            h('p.small.muted', { text: 'อีเมลรหัสเข้าสู่ระบบส่งทุกครั้งที่คุณขอ ปิดไม่ได้' })),
+          deletionCard()))
+    ]);
   };
 })();

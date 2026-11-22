@@ -348,8 +348,11 @@
     function row(o) {
       var users = h('div.stack-tight', {}, o.users.map(function (u) {
         var off = u.status !== 'active';
+        var who = [u.name && u.name !== u.email.split('@')[0] ? u.name : '', u.job_title, u.phone].filter(Boolean).join(' · ');
         return h('div.user-line', {},
           h('span' + (off ? '.struck' : ''), { text: u.email }),
+          who ? h('span.small.muted.block', { text: who }) : null,
+          u.deleteRequestedAt ? h('span.pill.del-pill', { text: 'ขอลบบัญชี ' + new Date(u.deleteRequestedAt).toLocaleDateString('th-TH'), title: u.deleteReason || '' }) : null,
           u.role === 'admin' ? h('span.pill', { text: 'admin' }) : null,
           off ? h('span.pill.gray', { text: 'ถูกระงับ' }) : null,
           u.role === 'admin' ? null : ui.button('small-btn' + (off ? '' : '.danger'), off ? 'เปิดใช้บัญชี' : 'ระงับบัญชี', function () { toggleUser(u, off); }, { icon: off ? 'check' : 'lock' }));

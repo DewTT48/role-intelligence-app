@@ -201,3 +201,20 @@ html.poster body { font-family: var(--font); font-size: 15.5px; line-height: 1.6
 html.poster input, html.poster select, html.poster textarea, html.poster .chip, html.poster .option, html.poster .textv,
 html.poster .table-wrap td, html.poster .edit-table td, html.poster .note, html.poster .tip, html.poster .toast { font-family: var(--font); }
 html.poster .table-wrap td, html.poster .cell-list { line-height: 1.6; }
+
+/* sign-in */
+html.poster .signin-hero { background: var(--indigo); }
+html.poster .signin-hero .wordmark { color: #fff; }
+html.poster .signin-card { border: 1px solid #080808; box-shadow: 8px 8px 0 #080808; padding: 32px 28px; gap: 14px; }
+html.poster .signin-card .eyebrow { color: var(--indigo); }
+html.poster .signin-card h1 { color: var(--ink); }
+html.poster .hero-lead { font-family: var(--font-head); }
+
+/* account */
+html.poster .who-link { color: #F7F7F4; }
+html.poster .who-link strong { color: #fff; }
+html.poster .who-link .muted { color: #B9BBB5; }
+html.poster .who-link:hover, html.poster .who-link.on { background: #1C1C1C; }
+html.poster input[type=tel] { border: 1px solid #8E908B; border-radius: var(--radius); font-family: var(--font); }
+html.poster .check-line input { accent-color: var(--indigo); }
+html.poster .danger-zone { border-color: var(--red-ink); }

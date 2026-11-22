@@ -31,7 +31,10 @@
     side.hidden = !me;
     if (!me) return;
     document.getElementById('nav-admin').hidden = me.user.role !== 'admin';
+    document.getElementById('who-name').textContent = me.user.display_name || me.user.email.split('@')[0];
     document.getElementById('who').textContent = me.user.email;
+    document.getElementById('who-link').title = 'บัญชีของฉัน · ' + me.user.email;
+    document.getElementById('who-link').classList.toggle('on', (location.hash || '').indexOf('#account') === 0);
     var c = me.credits;
     ui.mount(document.getElementById('credit-box'), [
       h('span.credit-label', { text: 'เครดิตคงเหลือ' }),
@@ -62,6 +65,8 @@
 
     var page = window.pages[name] || window.pages.quest;
     document.querySelectorAll('.nav a').forEach(function (a) { a.classList.toggle('on', a.dataset.route === name || (name === 'jd' && a.dataset.route === 'jds')); });
+    var wl = document.getElementById('who-link');
+    if (wl) wl.classList.toggle('on', name === 'account');
     page(view, arg);
     view.focus({ preventScroll: true });
     window.scrollTo(0, 0);
