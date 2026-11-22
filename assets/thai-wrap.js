@@ -66,6 +66,10 @@
     var multi = parts.some(function (p) { return !p.trim(); });
     var box = run;
     parts.forEach(function (p, i) {
+      // "เหลือ 3 ครั้ง", "ใช้ 2 เครดิต": a Thai word and the number after it stay on one line,
+      // so a break falls before the word ("Role Brief ฟรี | เหลือ 3 ครั้งเดือนนี้").
+      var numberNext = !p.trim() && box !== run && THAI.test(parts[i - 1] || '') && /^\d/.test(parts[i + 1] || '');
+      if (numberNext) { box.appendChild(document.createTextNode(' ')); return; }
       if (!p.trim()) { box = run; run.appendChild(document.createTextNode(p)); return; }
       if (multi && box === run && THAI.test(p)) {
         box = document.createElement('span');

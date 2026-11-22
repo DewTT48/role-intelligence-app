@@ -1,0 +1,203 @@
+/* theme-poster.css – the Persone look (persone.dewteerapap.com), so Role Intelligence sits in the same family.
+ * Warm off-white page, black sidebar, indigo blocks, hot-pink actions with black text and a hard black offset
+ * shadow, Anton for numbers, IBM Plex Sans Thai bold for Thai headings, small 4px corners.
+ * Roles: black = structure · pink = the main action and highlights · indigo = information, AI and Role Profile ·
+ * green = done/pay. Everything is scoped to html.poster (switch on with ?theme=poster).
+ */
+html.poster {
+  --bg: #F4F6F2; --surface: #FFFFFF; --paper-2: #F4F6F2; --head-bg: #E8EAE6;
+  --line: #D9DBD6; --line-soft: #E4E6E1; --line-strong: #111111;
+  --ink: #080808; --ink-2: #26272B; --muted: #5C5E67; --faint: #A3A5A0;
+  --indigo: #30388C; --indigo-ink: #28307F; --indigo-soft: #EFF0FF; --indigo-line: #7B83DC;
+  --hot: #FF4FA3; --hot-ink: #C92C7D; --hot-soft: #FFF0F7;
+  --blue: #30388C; --blue-ink: #28307F; --blue-soft: #EFF0FF;
+  --pink: #FF4FA3; --pink-ink: #C92C7D; --pink-soft: #FFF0F7; --pink-line: #FF4FA3;
+  --green: #1F6B48; --green-ink: #1F6B48; --green-soft: #EDF8F2;
+  --red-ink: #D72F4B; --red-soft: #FDEEF1;
+  --mark-pink: #FF4FA3; --stamp: #C92C7D;
+  --radius: 4px;
+  --font: 'IBM Plex Sans Thai', 'Noto Sans Thai', system-ui, sans-serif;
+  --font-head: 'IBM Plex Sans Thai', 'Noto Sans Thai', system-ui, sans-serif;
+  --hard: 5px 5px 0 #080808;
+  --hard-sm: 3px 3px 0 #080808;
+}
+html.poster body { background: var(--bg); background-image: none; }
+html.poster :focus-visible { outline: 3px solid var(--hot); outline-offset: 2px; }
+html.poster a { color: var(--indigo-ink); }
+html.poster h1 { font-size: 36px; font-weight: 700; letter-spacing: -.005em; }
+html.poster h2 { font-size: 21px; font-weight: 700; }
+html.poster .eyebrow, html.poster .credit-label { font-family: var(--font); font-weight: 700; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--indigo); }
+
+/* black sidebar, like Persone's header */
+html.poster .side { background: #080808; color: #F7F7F4; border-right: 0; }
+html.poster .wordmark, html.poster .brand-text strong, html.poster .brand-text small.tagline { color: #FFFFFF; }
+html.poster .nav a { color: #F7F7F4; border-radius: var(--radius); font-weight: 500; }
+html.poster .nav a:hover { background: #1C1C1C; color: #fff; }
+html.poster .nav a.on { background: var(--hot); color: #080808; font-weight: 700; }
+html.poster .credit-box { background: var(--indigo); border: 0; color: #fff; border-radius: var(--radius); }
+html.poster .credit-box .credit-label { color: #C9CDF5; }
+html.poster .credit-box .muted { color: #E1E3FA; }
+html.poster .credit-box a { color: #fff; }
+html.poster .credit-num { font-family: var(--font-display); font-weight: 400; font-size: 52px; line-height: 1; color: var(--hot); }
+html.poster .side-foot, html.poster #who, html.poster .side .link-btn { color: #B9BBB5; }
+html.poster .demo-badge { background: #1C1C1C; color: var(--hot); border: 1px solid var(--hot); }
+@media (max-width: 720px) { html.poster .side { border-bottom: 0; } }
+
+/* surfaces */
+html.poster .card { border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: none; }
+html.poster .modal { border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: 8px 8px 0 #080808; }
+html.poster .modal-back { background: rgba(8, 8, 8, .55); }
+html.poster .toast { background: #080808; border-left: 6px solid var(--hot); border-radius: var(--radius); }
+html.poster .signin-card { border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: 8px 8px 0 var(--indigo); }
+
+/* buttons: Persone's pink button with black text and a hard shadow for the main action */
+html.poster .btn, html.poster .option, html.poster .gen, html.poster .chip,
+html.poster input[type=text], html.poster input[type=email], html.poster input[type=password], html.poster input[type=search],
+html.poster input[type=number], html.poster select, html.poster textarea { border-radius: var(--radius); }
+html.poster .btn { border: 1px solid var(--line-strong); background: #fff; color: var(--ink); font-weight: 600; transition: transform .08s, box-shadow .08s, background .12s; }
+html.poster .btn:hover:not([disabled]) { background: var(--ink); color: #fff; border-color: var(--ink); }
+html.poster .btn.primary { background: var(--hot); border-color: #080808; color: #080808; font-weight: 700; box-shadow: var(--hard-sm); }
+html.poster .btn.primary:hover:not([disabled]) { background: var(--hot); color: #080808; transform: translate(2px, 2px); box-shadow: 1px 1px 0 #080808; }
+html.poster .btn.go { background: var(--green); border-color: #080808; color: #fff; box-shadow: var(--hard-sm); }
+html.poster .btn.go:hover:not([disabled]) { background: var(--green); transform: translate(2px, 2px); box-shadow: 1px 1px 0 #080808; }
+html.poster .btn.ghost { background: transparent; border: 1px solid var(--line-strong); color: var(--ink); }
+html.poster .btn.danger { border-color: var(--red-ink); color: var(--red-ink); }
+html.poster .btn.danger:hover:not([disabled]) { background: var(--red-ink); color: #fff; border-color: var(--red-ink); }
+html.poster .btn.ai-btn, html.poster .btn.ai, html.poster .btn.gold-btn { border-color: var(--indigo); color: var(--indigo); }
+html.poster .btn.ai-btn:hover:not([disabled]), html.poster .btn.ai:hover:not([disabled]) { background: var(--indigo); color: #fff; border-color: var(--indigo); }
+html.poster .btn.ai-go { background: var(--indigo); border-color: #080808; color: #fff; box-shadow: var(--hard-sm); }
+html.poster .btn.icon-btn, html.poster .btn.ghost.icon-btn { border-color: transparent; background: transparent; box-shadow: none; color: var(--ink); }
+html.poster .btn.icon-btn:hover:not([disabled]) { background: var(--head-bg); color: var(--ink); }
+html.poster .btn.lock-on { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+html.poster input[type=text], html.poster input[type=email], html.poster input[type=password], html.poster input[type=search],
+html.poster input[type=number], html.poster select, html.poster textarea { border: 1px solid #8E908B; background: #fff; }
+html.poster input:focus, html.poster select:focus, html.poster textarea:focus { border-color: #080808; outline: none; box-shadow: 0 0 0 3px var(--hot-soft), 0 0 0 1px #080808; }
+
+/* quest */
+html.poster .ask { font-size: 26px; font-weight: 700; color: var(--indigo-ink); line-height: 1.3; }
+html.poster .chip, html.poster .option { border: 1px solid var(--line-strong); background: #fff; }
+html.poster .chip:hover, html.poster .option:hover { background: var(--indigo-soft); }
+html.poster .chip.on, html.poster .option.on { background: var(--indigo); border-color: var(--indigo); color: #fff; border-width: 1px; }
+html.poster .option.on small { color: #D5D8F7; }
+html.poster .ai-tag { color: var(--indigo); font-weight: 700; }
+html.poster .chip-wait { border: 1px dashed var(--indigo-line); background: var(--indigo-soft); }
+html.poster .chip-ghosts span { background: #D5D8F7; }
+html.poster .hint { background: var(--green-soft); color: var(--green-ink); border-left: 4px solid var(--green); border-radius: var(--radius); }
+html.poster .req { color: var(--hot-ink); }
+html.poster .meter { height: 10px; background: #fff; border: 1px solid #080808; border-radius: 0; }
+html.poster .meter::before, html.poster .meter::after { display: none; }
+html.poster .meter span { background: var(--hot); border-radius: 0; }
+html.poster .meter-label { color: var(--indigo); }
+html.poster .steps i { background: #D9DBD6; }
+html.poster .steps i.done { background: var(--indigo); } html.poster .steps i.now { background: var(--hot); } html.poster .steps i.skip { background: var(--faint); }
+html.poster .gen { border: 1px solid var(--line-strong); background: #fff; }
+html.poster .gen:hover:not([disabled]) { box-shadow: var(--hard-sm); transform: translate(-1px, -1px); }
+html.poster .gen.profile { border-color: var(--indigo); } html.poster .gen.profile span { color: var(--indigo); }
+html.poster .gen.blueprint { border: 2px solid var(--hot); } html.poster .gen.blueprint span { color: var(--hot-ink); }
+
+/* tiers, tags */
+html.poster .tier { font-family: var(--font-mono); border-radius: 2px; border: 1px solid #080808; box-shadow: none; }
+html.poster .tier.brief { background: #fff; color: #080808; }
+html.poster .tier.profile { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+html.poster .tier.blueprint { background: var(--hot); border-color: #080808; color: #080808; box-shadow: none; }
+html.poster .pill { border-radius: 2px; background: var(--indigo-soft); color: var(--indigo-ink); }
+html.poster .pill.gray { background: var(--head-bg); color: var(--muted); }
+html.poster .code-tag { background: #080808; color: #fff; border-radius: 2px; }
+html.poster .changed-tag { background: var(--hot); color: #080808; border: 1px solid #080808; border-radius: 2px; }
+html.poster .editing-tag { background: var(--indigo); border-radius: 2px; }
+
+/* notes (Persone's signal colours) */
+html.poster .note, html.poster .tip, html.poster .edit-help { border: 0; border-left: 4px solid var(--indigo); background: var(--indigo-soft); color: var(--indigo-ink); border-radius: var(--radius); }
+html.poster .note.info { border-left-color: var(--hot-ink); background: var(--hot-soft); color: #7E1A4E; }
+html.poster .note.ok { border-left-color: var(--green); background: var(--green-soft); color: var(--green-ink); }
+html.poster .note.err { border-left-color: var(--red-ink); background: var(--red-soft); color: #9E1F35; }
+html.poster .note.warn { border-left-color: #9A5B00; background: #FFF6E3; color: #6E4100; }
+html.poster .tip .btn.tip-ok { border-color: var(--indigo); color: var(--indigo); background: #fff; }
+html.poster .tip .btn.tip-ok:hover { background: var(--indigo); color: #fff; }
+
+/* the JD sheet: white paper with a hard indigo shadow */
+html.poster .preview, html.poster .jd-doc { border: 1px solid #080808; border-radius: var(--radius); box-shadow: 8px 8px 0 var(--indigo); }
+html.poster .preview::before { background: var(--hot); color: #080808; border: 1px solid #080808; font-weight: 700; }
+html.poster .preview-head { border-bottom: 2px solid #080808; }
+html.poster .preview-head .eyebrow { color: var(--indigo); }
+html.poster .preview-title { font-size: 26px; font-weight: 700; }
+html.poster .sec-no { font-family: var(--font-display); font-weight: 400; font-size: 19px; color: var(--indigo); padding-top: 0; }
+html.poster .sec:not(.ready) .sec-no { color: var(--faint); }
+html.poster .jd-sec h3 { color: var(--indigo-ink); font-size: 19px; font-weight: 700; }
+html.poster .jd-sec h3 .sec-mark { font-family: var(--font-display); font-size: 21px; font-weight: 400; color: var(--hot); }
+html.poster .jd-sec.editing { box-shadow: inset 4px 0 0 var(--hot); background: #FFFBFD; }
+html.poster .table-wrap { border: 1px solid #080808; border-radius: var(--radius); }
+html.poster .table-wrap th, html.poster .edit-table thead th { background: var(--indigo); color: #fff; }
+html.poster .edit-table tbody th { background: var(--indigo-soft); color: var(--indigo-ink); }
+html.poster .cell-list li::marker, html.poster .bullet-edit li::marker { color: var(--hot-ink); }
+html.poster .stamp { background: var(--hot); color: #080808; border: 1px solid #080808; box-shadow: var(--hard); padding: 8px 18px 9px; transform: rotate(-3deg); }
+html.poster .stamp-top { border-bottom-color: #080808; }
+html.poster .milestone { border: 1px solid #080808; background: #fff; box-shadow: 8px 8px 0 var(--hot); }
+html.poster .save-bar-in { background: #080808; border-radius: var(--radius); box-shadow: 6px 6px 0 var(--indigo); }
+html.poster .save-bar-in .btn.primary { box-shadow: none; border-color: var(--hot); }
+
+/* lists, credits, company */
+html.poster .pos-row { transition: transform .08s, box-shadow .08s; }
+html.poster .pos-row:hover { border-color: #080808; box-shadow: var(--hard); transform: translate(-2px, -2px); }
+html.poster .pos-main:hover strong { color: var(--indigo); }
+html.poster .balance, html.poster .launch, html.poster .welcome-credit { background: var(--indigo); color: #fff; border: 0; border-radius: var(--radius); }
+html.poster .balance strong { font-family: var(--font-display); font-weight: 400; font-size: 44px; color: var(--hot); }
+html.poster .launch .bonus { color: var(--hot); }
+html.poster .pack.rec { border: 2px solid #080808; box-shadow: 6px 6px 0 var(--hot); }
+html.poster .pack-num { font-family: var(--font-display); font-weight: 400; font-size: 44px; color: var(--indigo); }
+html.poster .core-row { border-radius: var(--radius); }
+html.poster .core-row:not(.off) { border: 1px solid #080808; background: #fff; }
+html.poster .provider { border: 1px solid #080808; border-radius: var(--radius); }
+html.poster .provider:has(input:checked) { border: 2px solid var(--indigo); background: var(--indigo-soft); }
+html.poster .rev-row { border: 1px solid #080808; border-radius: var(--radius); }
+html.poster .rev-row.on { border-color: var(--indigo); background: var(--indigo-soft); }
+html.poster .compare .now { background: var(--indigo-soft); }
+
+/* onboarding */
+html.poster .welcome-step { border: 1px solid #080808; border-radius: var(--radius); }
+html.poster .welcome-no { font-family: var(--font-display); font-weight: 400; font-size: 36px; line-height: 1; color: var(--hot); }
+html.poster .welcome-step h2 { color: var(--indigo-ink); }
+html.poster .welcome-meta { color: var(--hot-ink); }
+html.poster .welcome-tier { border: 1px solid #080808; background: #fff; border-radius: var(--radius); }
+html.poster .check-box { border: 1px solid #080808; border-radius: 2px; }
+html.poster .check-items li.next { background: var(--hot-soft); box-shadow: inset 4px 0 0 var(--hot); }
+html.poster .check-reward { color: var(--hot-ink); }
+html.poster .next-tile { border: 1px solid #080808; border-radius: var(--radius); }
+html.poster .next-tile:hover { box-shadow: var(--hard-sm); transform: translate(-1px, -1px); background: #fff; }
+
+/* admin */
+html.poster .admin-tabs { border-bottom: 1px solid #080808; }
+html.poster .admin-tabs a { color: var(--ink); }
+html.poster .admin-tabs a.on { color: var(--ink); border-bottom: 4px solid var(--hot); }
+html.poster .seg { border: 1px solid #080808; border-radius: var(--radius); }
+html.poster .seg-btn.on { background: var(--indigo); }
+html.poster .stat { border: 1px solid #080808; border-radius: var(--radius); }
+html.poster .stat-value { font-family: var(--font-display); font-weight: 400; font-size: 34px; color: var(--indigo); letter-spacing: .01em; }
+html.poster .stat.green .stat-value { color: var(--green); } html.poster .stat.pink .stat-value { color: var(--hot-ink); }
+html.poster .funnel-bar { background: var(--indigo-soft); border-radius: 0; }
+html.poster .funnel-bar span { background: var(--indigo); border-radius: 0; }
+html.poster .daybar-fill { background: var(--hot); }
+html.poster .credit-cell { color: var(--hot-ink); }
+html.poster .mail-card { border: 1px solid #080808; background: #fff; }
+
+/* ---------- Chakra Petch for headings, buttons and menus; body text stays IBM Plex Sans Thai ---------- */
+html.poster { --font-head: 'Chakra Petch', 'IBM Plex Sans Thai', system-ui, sans-serif; }
+html.poster h1, html.poster h2, html.poster h3, html.poster .ask, html.poster .preview-title, html.poster .brand-text strong,
+html.poster .btn, html.poster .nav a, html.poster .admin-tabs a, html.poster .seg-btn, html.poster .eyebrow, html.poster .credit-label,
+html.poster .option strong, html.poster .gen strong, html.poster .gen, html.poster .stamp, html.poster .welcome-step h2,
+html.poster .stat-label, html.poster .pos-main strong, html.poster label.field { font-family: var(--font-head); }
+html.poster h1 { font-size: 38px; font-weight: 700; letter-spacing: 0; }
+html.poster h2 { font-weight: 700; }
+html.poster .ask { font-size: 27px; }
+html.poster .eyebrow, html.poster .credit-label { letter-spacing: .08em; font-weight: 600; }
+html.poster .btn { font-weight: 600; letter-spacing: .01em; }
+html.poster .btn.primary { font-weight: 700; }
+html.poster .tip .btn.tip-ok { border-radius: var(--radius); }
+
+/* ---------- Chakra Petch everywhere (its Latin letters are drawn to match, so English needs no other font).
+ * Kept: Anton for big numbers and the RI. wordmark, IBM Plex Mono for codes and small labels that line up. */
+html.poster { --font: 'Chakra Petch', 'IBM Plex Sans Thai', system-ui, sans-serif; }
+html.poster body { font-family: var(--font); font-size: 15.5px; line-height: 1.65; }
+html.poster input, html.poster select, html.poster textarea, html.poster .chip, html.poster .option, html.poster .textv,
+html.poster .table-wrap td, html.poster .edit-table td, html.poster .note, html.poster .tip, html.poster .toast { font-family: var(--font); }
+html.poster .table-wrap td, html.poster .cell-list { line-height: 1.6; }

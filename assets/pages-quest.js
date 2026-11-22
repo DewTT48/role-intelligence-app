@@ -334,6 +334,13 @@
           } });
         }));
         if (!all.length && !st.loadingChips) wrap.appendChild(h('span.muted.small', { text: A().position_title ? 'พิมพ์คำตอบของคุณด้านล่าง' : 'ใส่ชื่อตำแหน่งก่อน ระบบจะเสนอตัวเลือกให้' }));
+        if (!all.length && st.loadingChips) {
+          wrap.appendChild(h('div.chip-wait', { role: 'status' },
+            h('div.chip-ghosts', { 'aria-hidden': 'true' }, [70, 110, 90, 130, 80].map(function (w) { return h('span', { style: 'width:' + w + 'px' }); })),
+            h('p', {}, h('strong', { text: 'AI กำลังคิดตัวเลือกให้ ราว 5–15 วินาที' })),
+            h('p.small', { text: 'ไม่ต้องรอก็ได้ พิมพ์คำตอบเองในช่องด้านล่างได้เลย ตัวเลือกจาก AI จะขึ้นมาให้เลือกเพิ่มเมื่อพร้อม' }),
+            h('div', {}, ui.button('ghost.small-btn', 'พิมพ์เองเลย', function () { own.focus(); }, { icon: 'edit' }))));
+        }
       }
       var own = h('input', { type: 'text', id: 'q-own', placeholder: decision ? 'พิมพ์เอง (ขึ้นต้นด้วย "ขออนุมัติ:" ถ้าต้องขออนุมัติ)' : 'พิมพ์เพิ่มเอง แล้วกด Enter',
         onkeydown: function (e) { if (e.key === 'Enter') { e.preventDefault(); addOwn(); } } });
