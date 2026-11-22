@@ -149,7 +149,7 @@
   }
 
   // ======================= admin home: tabs =======================
-  var TABS = [['overview', 'ภาพรวม'], ['cost', 'ค่า AI'], ['customers', 'ลูกค้าและเครดิต'], ['followup', 'ผู้ใช้ใหม่ที่ยังไม่เริ่ม'], ['ai', 'ตั้งค่า AI']];
+  var TABS = [['overview', 'ภาพรวม'], ['cost', 'ค่า AI'], ['customers', 'ลูกค้าและเครดิต'], ['payments', 'การชำระเงิน'], ['followup', 'ผู้ใช้ใหม่ที่ยังไม่เริ่ม'], ['ai', 'ตั้งค่า AI']];
   var KIND_LABEL = { 'new': 'สร้างใหม่', upgrade: 'อัปเกรดจากระดับก่อน', rewrite: 'เขียนใหม่ทั้งฉบับ' };
   var FUNNEL_LABEL = { signup: 'สมัคร', company: 'กรอกข้อมูลบริษัท', firstJd: 'สร้าง JD แรก', paid: 'ซื้อเครดิต' };
   var ACTION_LABEL = { signup_bonus: 'เครดิตฟรีเมื่อสมัคร', company_profile_bonus: 'โบนัสข้อมูลบริษัท', core_competency_bonus: 'โบนัส Core Competency',
@@ -192,7 +192,7 @@
         return h('a' + (t[0] === tab ? '.on' : ''), { href: '#admin/' + t[0], text: t[1], 'aria-current': t[0] === tab ? 'page' : null });
       })),
       body]);
-    ({ overview: overviewTab, cost: costTab, customers: customersTab, followup: followupTab, ai: aiSettings })[tab](body);
+    ({ overview: overviewTab, cost: costTab, customers: customersTab, payments: paymentsTab, followup: followupTab, ai: aiSettings })[tab](body);
   };
   window.pages['ai-settings'] = function (view) { window.pages.admin(view, 'ai'); };
 
@@ -500,5 +500,101 @@
         h('p.muted', { text: 'คนที่ค้างนาน ลองโทรหรือทักไปถามตรง ๆ ได้ผลกว่าอีเมล และได้รู้ว่าติดตรงไหน' }),
         table(['อีเมล', 'สมัครเมื่อ', 'ค้างที่', 'อีเมลที่ส่งแล้ว', 'ฉบับถัดไป'], rows, 'customers')),
       sample]);
+  }
+
+  // ---------------- การชำระเงิน ----------------
+  function paymentsTab(el) {
+    var settingsBox = h('div');
+    var listBox = h('div.stack');
+    ui.mount(el, [listBox, settingsBox]);
+    api.call('admin.pay.settings').then(function (s) { drawSettings(s); }, function (e) { failed(settingsBox, e); });
+    loadList();
+
+    function drawSettings(s) {
+      var b = s.bank || {};
+      var f = {
+        bankName: h('input', { type: 'text', id: 'ps-bank', value: b.bankName || '', placeholder: 'ธนาคารไทยพาณิชย์' }),
+        branch: h('input', { type: 'text', id: 'ps-branch', value: b.branch || '', placeholder: 'สาขา' }),
+        accountName: h('input', { type: 'text', id: 'ps-name', value: b.accountName || '', placeholder: 'บริษัท … จำกัด' }),
+        accountNo: h('input', { type: 'text', id: 'ps-no', value: b.accountNo || '', placeholder: '000-000000-0', inputmode: 'numeric' }),
+        promptpay: h('input', { type: 'text', id: 'ps-pp', value: s.promptpayId || '', placeholder: 'ไม่บังคับ: เลขผู้เสียภาษีหรือเบอร์ที่ผูก PromptPay' }),
+        notify: h('input', { type: 'text', id: 'ps-notify', value: (s.notifyEmails || []).join(', '), placeholder: 'เว้นว่าง = อีเมลผู้ดูแลระบบ' })
+      };
+      var enabled = h('input', { type: 'checkbox', id: 'ps-on', checked: !!s.enabled });
+      var whtOn = h('input', { type: 'checkbox', id: 'ps-wht', checked: !!s.whtEnabled });
+      var msg = h('div');
+      var save = ui.button('primary', 'บันทึก', function () {
+        var payload = { enabled: enabled.checked, whtEnabled: whtOn.checked, promptpayId: f.promptpay.value,
+          notifyEmails: f.notify.value.split(/[,\s]+/).filter(Boolean),
+          bank: { bankName: f.bankName.value, branch: f.branch.value, accountName: f.accountName.value, accountNo: f.accountNo.value } };
+        var run = function () {
+          ui.busy(save, 'กำลังบันทึก…', function () {
+            return api.call('admin.pay.settings.save', payload).then(function (ns) { ui.toast('บันทึกแล้ว'); drawSettings(ns); });
+          }).catch(function (e) { ui.mount(msg, ui.note('err', ui.errorText(e))); });
+        };
+        if (payload.enabled && !s.enabled) {
+          ui.confirmBox('เปิดรับชำระเงิน?', 'ลูกค้าจะเห็นปุ่ม "ซื้อแพ็กนี้" และเลขบัญชี ' + payload.bank.accountNo + ' ทันที ตรวจเลขบัญชีให้ถูกก่อน', 'เปิดรับชำระเงิน').then(function (yes) { if (yes) run(); });
+        } else run();
+      });
+      ui.mount(settingsBox, h('section.card', { 'aria-labelledby': 'ps-h' },
+        h('div.row-between', {}, h('h2', { id: 'ps-h', text: 'บัญชีรับเงินและการตั้งค่า' }), h('span.pill' + (s.enabled ? '' : '.gray'), { text: s.enabled ? 'เปิดรับชำระเงินอยู่' : 'ยังไม่เปิด' })),
+        h('p.muted', { text: 'ข้อมูลนี้เก็บในการตั้งค่าของระบบ ลูกค้าเห็นเลขบัญชีเฉพาะตอนสั่งซื้อ' }),
+        h('div.form-grid', {},
+          h('label.field', { for: 'ps-bank' }, 'ธนาคาร', f.bankName), h('label.field', { for: 'ps-branch' }, 'สาขา', f.branch),
+          h('label.field', { for: 'ps-name' }, 'ชื่อบัญชี', f.accountName), h('label.field', { for: 'ps-no' }, 'เลขที่บัญชี', f.accountNo),
+          h('label.field', { for: 'ps-pp' }, 'PromptPay (ไม่บังคับ)', f.promptpay), h('label.field', { for: 'ps-notify' }, 'อีเมลรับแจ้งเตือนสลิปใหม่', f.notify)),
+        h('label.check-line', { for: 'ps-wht' }, whtOn, h('span', {}, h('strong', { text: 'ให้ลูกค้านิติบุคคลเลือกหักภาษี ณ ที่จ่าย 3% ได้' }),
+          h('span.small.muted.block', { text: 'ลูกค้าโอนยอดหลังหัก และต้องแนบ 50 ทวิ · ปิดได้ถ้าผู้ทำบัญชีบอกว่าไม่ต้องหัก' }))),
+        h('label.check-line', { for: 'ps-on' }, enabled, h('span', {}, h('strong', { text: 'เปิดรับชำระเงิน' }),
+          h('span.small.muted.block', { text: 'ลูกค้าเห็นปุ่มซื้อในหน้าเครดิต' }))),
+        msg, h('div.row.end', {}, save)));
+    }
+
+    function loadList() {
+      loading(listBox);
+      api.call('admin.payments').then(function (r) {
+        var rows = r.rows.map(function (o) {
+          var b = o.billing || {};
+          return h('tr', {},
+            h('td', {}, h('strong.mono', { text: o.ref }), h('div.small.muted', { text: when(o.created_at) })),
+            h('td', {}, h('div', { text: o.email }), h('div.small.muted', { text: (b.name || '') + (b.taxId ? ' · ' + b.taxId : '') + (b.branch ? ' · ' + b.branch : '') })),
+            h('td', {}, h('div', { text: o.credits + (o.bonusCredits ? ' + ' + o.bonusCredits : '') + ' เครดิต' }),
+              h('div.small.muted', { text: 'รวม ' + baht(o.total) + (o.whtThb ? ' · หัก ณ ที่จ่าย ' + baht(o.whtThb) : '') })),
+            h('td', {}, h('strong', { text: baht(o.amountDue) })),
+            h('td', {}, window.pay.statusTag(o.status), o.note ? h('div.small.muted', { text: o.note }) : null),
+            h('td', {}, h('div.row-tight', {},
+              o.hasSlip ? ui.button('ghost.small-btn', 'ดูสลิป', function () { showFile(o, 'slip'); }) : null,
+              o.hasWhtCert ? ui.button('ghost.small-btn', 'ดู 50 ทวิ', function () { showFile(o, 'whtCert'); }) : null,
+              o.status === 'awaiting_review' || o.status === 'awaiting_transfer' ? ui.button('small-btn.go', 'ยืนยันรับเงิน', function () { confirmPay(o); }) : null,
+              o.status === 'awaiting_review' || o.status === 'awaiting_transfer' ? ui.button('ghost.small-btn.danger', 'ไม่ผ่าน', function () { rejectPay(o); }) : null)));
+        });
+        ui.mount(listBox, [
+          r.waiting ? ui.note('info', 'มีสลิปรอตรวจ ' + r.waiting + ' รายการ') : null,
+          h('section.card', {}, h('h2', { text: 'คำสั่งซื้อ' }),
+            table(['เลขอ้างอิง', 'ผู้ซื้อ / ออกใบกำกับในนาม', 'แพ็ก', 'ยอดโอน', 'สถานะ', ''], rows, 'customers'),
+            h('p.small.muted', { text: 'ตรวจยอดในบัญชีธนาคารให้ตรงก่อนกดยืนยัน เครดิตเข้าทันทีและยกเลิกเองไม่ได้ (ปรับคืนได้ที่แท็บลูกค้าและเครดิต)' }))]);
+      }, function (e) { failed(listBox, e); });
+    }
+
+    function showFile(o, which) {
+      api.call('admin.payment.file', { id: o.id, which: which }).then(function (f) {
+        var src = 'data:' + f.mimeType + ';base64,' + f.base64;
+        var body = f.mimeType === 'application/pdf' ? h('iframe.file-view', { src: src, title: 'ไฟล์แนบ' }) : h('img.file-view', { src: src, alt: which === 'slip' ? 'สลิปการโอน' : 'หนังสือรับรองการหักภาษี' });
+        ui.confirmBox((which === 'slip' ? 'สลิป ' : '50 ทวิ ') + o.ref + ' · ยอดที่ต้องได้ ' + baht(o.amountDue), body, 'ปิด');
+      }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+    }
+    function confirmPay(o) {
+      ui.confirmBox('ยืนยันรับเงิน ' + o.ref + '?', 'ตรวจแล้วว่าได้รับ ' + baht(o.amountDue) + ' เข้าบัญชีบริษัท ระบบจะเพิ่ม ' + (o.credits + o.bonusCredits) + ' เครดิตให้ ' + o.email + ' และส่งอีเมลแจ้ง', 'ยืนยันรับเงิน').then(function (yes) {
+        if (!yes) return;
+        api.call('admin.payment.confirm', { id: o.id }).then(function () { ui.toast('เพิ่มเครดิตแล้ว'); loadList(); }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+      });
+    }
+    function rejectPay(o) {
+      var reason = h('input', { type: 'text', id: 'rej-reason', maxlength: '300', placeholder: 'เช่น ยอดโอนไม่ตรง, สลิปไม่ชัด' });
+      ui.confirmBox('ตรวจไม่ผ่าน ' + o.ref, h('label.field', { for: 'rej-reason' }, 'เหตุผล (ลูกค้าเห็นในอีเมล)', reason), 'บันทึก').then(function (yes) {
+        if (!yes) return;
+        api.call('admin.payment.reject', { id: o.id, reason: reason.value }).then(function () { ui.toast('บันทึกแล้ว'); loadList(); }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+      });
+    }
   }
 })();

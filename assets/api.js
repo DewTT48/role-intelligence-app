@@ -186,6 +186,55 @@
       if (isNew) { db.user = { id: 'usr_demo', email: p.email, display_name: p.email.split('@')[0], role: 'admin' }; db.ledger.push({ action: 'signup_bonus', amount: 3, note: 'เครดิตฟรีเมื่อสมัคร', at: now() }); }
       return { token: 'demo-token', isNew: isNew, me: me() };
     },
+    // ---- payments (demo) ----
+    'pay.config': function () { return demoPayConfig(); },
+    'billing.save': function (p) { db.billing = demoBilling(p); return db.billing; },
+    'pay.order': function (p) {
+      var s = db.paySet || {};
+      if (!s.enabled) throw fail('PAY_OFF', 'ยังไม่เปิดรับชำระเงิน ติดต่อผู้ดูแลระบบ');
+      if (p.billing) db.billing = demoBilling(p.billing);
+      if (!db.billing) throw fail('NEED_BILLING', 'กรอกข้อมูลสำหรับออกใบกำกับภาษีก่อน');
+      var q = demoQuote(p.packId, !!p.wht && s.whtEnabled && db.billing.type === 'company');
+      var o = { id: 'pay_' + Date.now(), ref: 'RI' + now().slice(2, 10).replace(/-/g, '') + '-' + Math.floor(1000 + Math.random() * 9000), packId: q.packId, credits: q.credits, bonusCredits: q.bonusCredits,
+        total: q.total, whtThb: q.whtThb, amountDue: q.amountDue, status: 'awaiting_transfer', hasSlip: false, hasWhtCert: false, note: '', created_at: now(), paid_at: '', billing: db.billing, email: db.user.email };
+      db.orders = [o].concat(db.orders || []);
+      return o;
+    },
+    'pay.mine': function () { return db.orders || []; },
+    'pay.attach': function (p) {
+      var o = (db.orders || []).filter(function (x) { return x.id === p.id; })[0];
+      if (!o) throw fail('NOT_FOUND', 'ไม่พบคำสั่งซื้อนี้');
+      if (!p.slip && !o.hasSlip) throw fail('BAD_FILE', 'แนบสลิปการโอนก่อน');
+      if (o.whtThb && !p.whtCert && !o.hasWhtCert) throw fail('BAD_FILE', 'แนบหนังสือรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ) ด้วย');
+      if (p.slip) { o.hasSlip = true; db.files = db.files || {}; db.files[o.id + 'slip'] = p.slip; }
+      if (p.whtCert) { o.hasWhtCert = true; db.files = db.files || {}; db.files[o.id + 'whtCert'] = p.whtCert; }
+      o.status = 'awaiting_review';
+      return o;
+    },
+    'pay.cancel': function (p) { var o = (db.orders || []).filter(function (x) { return x.id === p.id; })[0]; o.status = 'cancelled'; return o; },
+    'admin.pay.settings': function () { var s = db.paySet || {}; return { enabled: !!s.enabled, whtEnabled: !!s.whtEnabled, bank: s.bank || {}, promptpayId: s.promptpayId || '', notifyEmails: s.notifyEmails || [] }; },
+    'admin.pay.settings.save': function (p) {
+      var b = p.bank || {};
+      if (p.enabled && (!b.bankName || !b.accountName || !/^[0-9][0-9 -]{6,25}$/.test(b.accountNo || ''))) throw fail('BAD_VALUE', 'ใส่ธนาคาร ชื่อบัญชี และเลขที่บัญชีให้ครบก่อนเปิดรับชำระเงิน');
+      db.paySet = { enabled: !!p.enabled, whtEnabled: !!p.whtEnabled, bank: b, promptpayId: p.promptpayId || '', notifyEmails: p.notifyEmails || [] };
+      return handlers['admin.pay.settings']();
+    },
+    'admin.payments': function () {
+      var rows = (db.orders || []).slice();
+      return { rows: rows, waiting: rows.filter(function (o) { return o.status === 'awaiting_review'; }).length };
+    },
+    'admin.payment.file': function (p) { var f = (db.files || {})[p.id + (p.which === 'whtCert' ? 'whtCert' : 'slip')]; if (!f) throw fail('NOT_FOUND', 'ไม่มีไฟล์'); return f; },
+    'admin.payment.confirm': function (p) {
+      var o = (db.orders || []).filter(function (x) { return x.id === p.id; })[0];
+      if (o.status === 'paid') throw fail('ALREADY_PAID', 'ยืนยันคำสั่งซื้อนี้ไปแล้ว');
+      o.status = 'paid'; o.paid_at = now(); db.paidOnce = true;
+      db.ledger.push({ action: 'purchase', amount: o.credits + o.bonusCredits, note: 'ซื้อแพ็ก · ' + o.ref, at: now() });
+      return o;
+    },
+    'admin.payment.reject': function (p) {
+      if (String(p.reason || '').trim().length < 3) throw fail('BAD_VALUE', 'ใส่เหตุผลให้ลูกค้าเห็น');
+      var o = (db.orders || []).filter(function (x) { return x.id === p.id; })[0]; o.status = 'rejected'; o.note = p.reason; return o;
+    },
     'user.profile': function (p) {
       if (p.display_name !== undefined) { if (!String(p.display_name).trim()) throw fail('BAD_VALUE', 'ใส่ชื่อที่ใช้แสดง'); db.user.display_name = String(p.display_name).trim().slice(0, 60); }
       if (p.job_title !== undefined) db.user.job_title = String(p.job_title).trim().slice(0, 80);
@@ -481,6 +530,31 @@
       return { userId: u.id, status: u.status };
     }
   };
+
+  function demoBilling(b) {
+    b = b || {};
+    var id = String(b.taxId || '').replace(/[\s-]/g, '');
+    var ok = /^\d{13}$/.test(id) && (function () { var s = 0; for (var i = 0; i < 12; i++) s += Number(id[i]) * (13 - i); return (11 - (s % 11)) % 10 === Number(id[12]); })();
+    if (!String(b.name || '').trim()) throw fail('BAD_VALUE', 'ใส่ชื่อสำหรับออกใบกำกับภาษี');
+    if (!ok) throw fail('BAD_VALUE', 'เลขประจำตัวผู้เสียภาษีต้องเป็นตัวเลข 13 หลักที่ถูกต้อง');
+    if (String(b.address || '').trim().length < 10) throw fail('BAD_VALUE', 'ใส่ที่อยู่ตามที่จดทะเบียนให้ครบ');
+    var br = String(b.branch || '').trim();
+    br = b.type === 'person' ? '' : (!br || /^(สำนักงานใหญ่|00000)$/.test(br) ? 'สำนักงานใหญ่' : /^\d{1,5}$/.test(br) ? ('00000' + br).slice(-5) : null);
+    if (br === null) throw fail('BAD_VALUE', 'สาขาใส่ "สำนักงานใหญ่" หรือเลขสาขา 5 หลัก');
+    return { type: b.type === 'person' ? 'person' : 'company', name: String(b.name).trim(), taxId: id, branch: br, address: String(b.address).trim(), email: String(b.email || '').trim() || (db.user || {}).email };
+  }
+  function demoQuote(packId, wht) {
+    var pk = (D.packs || []).filter(function (p) { return p.id === packId; })[0] || { id: packId, name: packId, credits: 0, priceThb: 0 };
+    var before = pk.priceThb / 1.07, w = wht ? Math.round(before * 0.03 * 100) / 100 : 0;
+    var r2 = function (n) { return Math.round(n * 100) / 100; };
+    return { packId: pk.id, packName: pk.name, credits: pk.credits, bonusCredits: db.paidOnce ? 0 : Math.round(pk.credits * 0.2), beforeVat: r2(before), vat: r2(pk.priceThb - before),
+      total: pk.priceThb, whtThb: w, amountDue: r2(pk.priceThb - w) };
+  }
+  function demoPayConfig() {
+    var s = db.paySet || {};
+    return { enabled: !!(s.enabled && s.bank && s.bank.accountNo), whtEnabled: !!s.whtEnabled, whtRate: 0.03, bank: s.enabled ? s.bank : null, promptpayId: s.promptpayId || '',
+      packs: (D.packs || []).map(function (p) { return demoQuote(p.id, false); }), billing: db.billing || null, vatRate: 0.07, pricesIncludeVat: true, orders: db.orders || [] };
+  }
 
   function demoDormant() {
     var r = db.remind || {};

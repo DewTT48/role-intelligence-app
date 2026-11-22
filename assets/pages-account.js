@@ -279,7 +279,7 @@
 
   // ---------------- credits ----------------
   var ACTION_LABEL = {
-    signup_bonus: 'เครดิตฟรีเมื่อสมัคร', company_profile_bonus: 'โบนัสข้อมูลบริษัท', core_competency_bonus: 'โบนัส Core Competency', jd_duplicate: 'คัดลอก JD ทั้งฉบับ', ai_edit_item: 'AI แก้ทีละข้อ', ai_edit_section: 'AI แก้ทั้งหมวด', leadership_competency_bonus: 'โบนัส Leadership Competency', admin_grant: 'เครดิตจากผู้ดูแลระบบ', jd_silver: 'สร้าง Role Profile',
+    signup_bonus: 'เครดิตฟรีเมื่อสมัคร', company_profile_bonus: 'โบนัสข้อมูลบริษัท', core_competency_bonus: 'โบนัส Core Competency', jd_duplicate: 'คัดลอก JD ทั้งฉบับ', ai_edit_item: 'AI แก้ทีละข้อ', ai_edit_section: 'AI แก้ทั้งหมวด', leadership_competency_bonus: 'โบนัส Leadership Competency', admin_grant: 'เครดิตจากผู้ดูแลระบบ', admin_deduct: 'ผู้ดูแลปรับลด', purchase: 'ซื้อเครดิต', jd_silver: 'สร้าง Role Profile',
     jd_gold: 'สร้าง Role Blueprint', refund: 'คืนเครดิต', topup: 'เติมเครดิต', launch_bonus: 'โบนัสเปิดตัว', test: 'ปรับเครดิต'
   };
 
@@ -287,6 +287,19 @@
     var c = app.me.credits;
     var pr = c.pricing || { pricesIncludeVat: true, validMonths: 12, launchBonusPct: 20, launchBonusCustomers: 30, freeBriefPerMonth: 10, freeRegenerations: 2 };
     var hist = h('div.stack', {}, h('p.muted', { text: 'กำลังโหลด…' }));
+    var buyBtns = {};
+    var payNote = h('div', {}, ui.note('info', 'กำลังโหลดช่องทางชำระเงิน…'));
+    var ordersBox = h('div');
+    api.call('pay.config').then(function (cfg) {
+      Object.keys(buyBtns).forEach(function (id) {
+        var on = cfg.enabled;
+        ui.mount(buyBtns[id], on ? ui.button(buyBtns[id].dataset.rec ? 'primary' : '', 'ซื้อแพ็กนี้', function () { app.go('#buy/' + id); })
+          : h('button.btn', { type: 'button', disabled: true, text: 'ยังไม่เปิดรับชำระเงิน' }));
+      });
+      ui.mount(payNote, cfg.enabled ? ui.note('info', 'ชำระโดยโอนเข้าบัญชีบริษัท แล้วแนบสลิป เครดิตเข้าหลังผู้ดูแลตรวจ · ออกใบกำกับภาษีเต็มรูปได้ (กรอกข้อมูลครั้งแรกครั้งเดียว)')
+        : ui.note('info', 'ช่วงนี้ติดต่อเติมเครดิตกับผู้ดูแลระบบได้โดยตรง'));
+      ui.mount(ordersBox, window.pay.ordersCard(cfg.orders));
+    }, function () { ui.mount(payNote, null); });
     ui.mount(view, [
       ui.pageHead('ซื้อเมื่อหมด ไม่มีรายเดือน · เครดิตอายุ ' + pr.validMonths + ' เดือน', 'เครดิต',
         h('div.balance', {}, h('span', { text: 'คงเหลือ' }), h('strong', { text: ui.fmtCredits(c.balance) }), h('span', { text: 'เครดิต' }))),
@@ -300,14 +313,15 @@
           bonus ? h('span.bonus', { text: '+ แถม ' + bonus + ' เครดิต ช่วงเปิดตัว' }) : null,
           h('div.pack-price', { text: p.priceThb.toLocaleString('th-TH') + ' ฿' + (pr.pricesIncludeVat ? '' : ' + VAT') }),
           h('span.muted.small', { text: (pr.pricesIncludeVat ? 'รวม VAT แล้ว · ' : '') + '~' + Math.round(p.priceThb / p.credits) + ' ฿ ต่อเครดิต · Role Blueprint ' + Math.floor(p.credits / c.costs.gold) + ' ฉบับ' }),
-          h('button.btn' + (p.recommended ? '.primary' : ''), { type: 'button', disabled: true, text: 'ชำระเงินออนไลน์ เร็ว ๆ นี้' }));
+          (buyBtns[p.id] = h('div.buy-slot', { 'data-rec': p.recommended ? '1' : '' }, h('button.btn', { type: 'button', disabled: true, text: 'กำลังโหลด…' }))));
       }).concat([h('div.card.pack', {},
         h('strong', { text: 'Enterprise / ที่ปรึกษา' }),
         h('div.pack-num', { text: 'ตกลงราคา' }),
         h('span.muted.small', { text: 'ทำ JD ทั้งองค์กร 300 ตำแหน่งขึ้นไป พร้อม workshop และ Competency ขององค์กร' }),
         window.RI_CONFIG.contactEmail ? h('a.btn', { href: 'mailto:' + window.RI_CONFIG.contactEmail, text: 'ติดต่อเรา' }) : h('span.muted.small', { text: 'ติดต่อผู้ดูแลระบบเพื่อตกลงราคา' }),
         window.RI_CONFIG.contactEmail ? h('span.muted.small', { text: window.RI_CONFIG.contactEmail }) : null)])),
-      ui.note('info', 'ช่วงเปิดตัว ติดต่อเติมเครดิตกับผู้ดูแลระบบได้โดยตรง ระบบชำระเงินออนไลน์และใบกำกับภาษีเต็มรูปจะเปิดในเฟสถัดไป'),
+      payNote,
+      ordersBox,
       h('div.grid-2', {},
         h('section.card', {},
           h('h2', { text: 'ใช้เครดิตกับอะไร' }),

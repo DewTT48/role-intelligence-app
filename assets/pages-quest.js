@@ -29,7 +29,7 @@
 
   window.pages.quest = function (view, positionId) {
     var meta, qs, st = { pos: null, idx: 0, chips: {}, loadingChips: false, saving: '', dirty: false };
-    ui.mount(view, h('p.muted', { text: 'กำลังโหลด…' }));
+    ui.mount(view, [ui.pageHead(positionId ? 'บันทึกอัตโนมัติ' : 'ตำแหน่งใหม่ · บันทึกอัตโนมัติ', positionId ? '\u00a0' : 'สร้าง JD'), h('p.muted', { text: 'กำลังโหลด…' })]);
 
     app.loadQuestions().then(function (m) {
       meta = m;

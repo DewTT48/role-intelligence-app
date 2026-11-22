@@ -218,3 +218,17 @@ html.poster .who-link:hover, html.poster .who-link.on { background: #1C1C1C; }
 html.poster input[type=tel] { border: 1px solid #8E908B; border-radius: var(--radius); font-family: var(--font); }
 html.poster .check-line input { accent-color: var(--indigo); }
 html.poster .danger-zone { border-color: var(--red-ink); }
+
+/* menu items keep one weight, so selecting one never changes the width of the others */
+html.poster .nav a, html.poster .nav a.on { font-weight: 600; }
+
+/* buying credits */
+html.poster .radio-pill { border: 1px solid #080808; border-radius: var(--radius); }
+html.poster .radio-pill:has(input:checked) { border-color: var(--indigo); background: var(--indigo-soft); color: var(--indigo-ink); }
+html.poster .bill-summary { background: var(--indigo-soft); border-left: 4px solid var(--indigo); border-radius: var(--radius); }
+html.poster .pay-line.due strong, html.poster .pay-amount strong { color: var(--hot-ink); font-family: var(--font-display); font-weight: 400; letter-spacing: .01em; }
+html.poster .pay-amount strong { font-size: 40px; }
+html.poster .bank-card { box-shadow: 8px 8px 0 var(--indigo); border: 1px solid #080808; }
+html.poster .pay-status { border-radius: 2px; border: 1px solid currentColor; }
+html.poster .order-row { border: 1px solid #080808; border-radius: var(--radius); }
+html.poster .order-row:hover { box-shadow: var(--hard-sm); transform: translate(-1px, -1px); }
