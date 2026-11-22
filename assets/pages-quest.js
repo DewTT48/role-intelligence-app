@@ -275,7 +275,7 @@
           }))
       ]);
       var first = els.card.querySelector('input, textarea');
-      if (first && ux.kind !== 'chips' && ux.kind !== 'decision') first.focus();
+      if (first && ux.kind !== 'chips' && ux.kind !== 'decision') first.focus({ preventScroll: true });
     }
 
     function unlockHint(q) {
