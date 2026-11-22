@@ -400,8 +400,82 @@
       db.ai[p.role === 'fallback' ? 'fallback' : 'primary'] = { provider: p.provider, model: p.model, effort: p.effort || '' };
       return { saved: true, check: r, settings: demoAiSettings() };
     },
-    'ai.routes.save': function (p) { db.ai.routes = p.routes || {}; return { saved: true, routes: db.ai.routes }; }
+    'ai.routes.save': function (p) { db.ai.routes = p.routes || {}; return { saved: true, routes: db.ai.routes }; },
+
+    // ---- admin (sample numbers; the demo has no other customers) ----
+    'admin.overview': function () {
+      return { days: 30, users: { total: 14, today: 1, week: 5, month: 14, period: 14, active: 8, suspended: 0 }, orgs: 14, positions: 23,
+        jds: { total: 31, byTier: { bronze: 19, silver: 8, gold: 4 } }, credits: { given: 61, bought: 0, used: 34, outstanding: 57 + balance() },
+        revenue: 0, aiCost: 342.18, margin: -342.18, unpricedModels: [],
+        funnel: [{ step: 'signup', count: 14 }, { step: 'company', count: 11 }, { step: 'firstJd', count: 9 }, { step: 'paid', count: 0 }] };
+    },
+    'admin.aiCost': function () { return demoCost(); },
+    'admin.prices.save': function (p) { db.prices = { usdThb: Number(p.usdThb) || 33, models: Object.assign({}, demoCost().prices.models, p.models || {}) }; return demoCost(); },
+    'admin.orgs': function (p) {
+      var q = String(p.q || '').toLowerCase();
+      var rows = [{ id: db.org.id, name: db.org.name || '', business_type: db.org.business_type || '', created_at: now(),
+        users: [{ id: 'usr_demo', email: (db.user || {}).email || 'demo@example.com', role: 'admin', status: 'active' }], balance: balance(),
+        positions: db.positions.length, jds: db.positions.filter(function (x) { return db.versions.some(function (v) { return v.positionId === x.id; }); }).length, last_login_at: now() }]
+        .concat((db.demoOrgs = db.demoOrgs || [
+          { id: 'org_a', name: 'ร้านตัวอย่าง ก', business_type: 'ค้าปลีกเครื่องสำอาง', created_at: '2026-11-20T03:00:00Z', users: [{ id: 'u_a', email: 'hr@shop-a.example', role: 'owner', status: 'active' }], balance: 5, positions: 3, jds: 2, last_login_at: '2026-11-22T02:10:00Z' },
+          { id: 'org_b', name: '', business_type: '', created_at: '2026-11-21T09:00:00Z', users: [{ id: 'u_b', email: 'owner@shop-b.example', role: 'owner', status: 'active' }], balance: 3, positions: 0, jds: 0, last_login_at: '2026-11-21T09:00:00Z' }]));
+      rows = rows.filter(function (r) { return !q || r.name.toLowerCase().indexOf(q) >= 0 || r.users.some(function (u) { return u.email.indexOf(q) >= 0; }); });
+      return { total: rows.length, rows: rows };
+    },
+    'admin.org.ledger': function (p) {
+      if (p.orgId === db.org.id) return db.ledger.slice().reverse().map(function (r) { return { action: r.action, amount: r.amount, note: r.note, created_at: r.at }; });
+      return [{ action: 'signup_bonus', amount: 3, note: 'เครดิตฟรีเมื่อสมัคร', created_at: '2026-11-20T03:00:00Z' }];
+    },
+    'admin.credits.adjust': function (p) {
+      var amount = Math.round(Number(p.amount) * 10) / 10;
+      if (!amount || Math.abs(amount) > 1000) throw fail('BAD_VALUE', 'จำนวนเครดิตต้องไม่เป็น 0 และไม่เกิน 1,000');
+      if (String(p.reason || '').trim().length < 3) throw fail('BAD_VALUE', 'ใส่เหตุผลก่อน');
+      if (p.orgId === db.org.id) {
+        if (amount < 0 && balance() + amount < 0) throw fail('BAD_VALUE', 'หักได้ไม่เกินที่เหลือ (' + balance() + ' เครดิต)');
+        db.ledger.push({ action: amount > 0 ? 'admin_grant' : 'admin_deduct', amount: amount, note: p.reason, at: now() });
+        return { orgId: p.orgId, balance: balance() };
+      }
+      var o = (db.demoOrgs || []).filter(function (x) { return x.id === p.orgId; })[0];
+      if (!o) throw fail('NOT_FOUND', 'ไม่พบบริษัทนี้');
+      if (amount < 0 && o.balance + amount < 0) throw fail('BAD_VALUE', 'หักได้ไม่เกินที่เหลือ (' + o.balance + ' เครดิต)');
+      o.balance = Math.round((o.balance + amount) * 10) / 10;
+      return { orgId: o.id, balance: o.balance };
+    },
+    'admin.user.status': function (p) {
+      var u = null;
+      (db.demoOrgs || []).forEach(function (o) { o.users.forEach(function (x) { if (x.id === p.userId) u = x; }); });
+      if (!u) throw fail('BAD_VALUE', 'ระงับบัญชีนี้ไม่ได้');
+      u.status = p.suspend ? 'suspended' : 'active';
+      return { userId: u.id, status: u.status };
+    }
   };
+
+  function demoCost() {
+    var prices = db.prices || { usdThb: 33, models: { 'claude-opus-5-5': { 'in': 4, out: 20 }, 'claude-sonnet-5-5': { 'in': 2, out: 10 }, 'claude-haiku-5-5': { 'in': 0.1, out: 0.5 } } };
+    var k = prices.usdThb / 33;
+    var r2 = function (n) { return Math.round(n * k * 100) / 100; };
+    var rate = { value: 92.52, pack: 'Organization' };
+    var chips = r2(1.35);
+    var write = { bronze: r2(4.62), silver: r2(9.8), gold: r2(15.4) };
+    return { days: 30, total: r2(342.18), calls: 412, failed: 3, positions: 23, chipsPerPosition: chips, bahtPerCredit: rate, prices: prices,
+      unpricedModels: prices.models['gemini-3.8-flash'] ? [] : ['gemini-3.8-flash'], modelsSeen: ['claude-opus-5-5', 'gemini-3.8-flash'],
+      perJd: ['bronze', 'silver', 'gold'].map(function (t) {
+        return { tier: t, chips: chips, write: write[t], total: Math.round((chips + write[t]) * 100) / 100, credits: CREDITS[t], revenue: Math.round(CREDITS[t] * rate.value * 100) / 100 };
+      }),
+      generations: [
+        { tier: 'bronze', kind: 'new', count: 19, avgCost: write.bronze, avgSeconds: 21.4, avgCredits: 0, revenue: 0, margin: -write.bronze },
+        { tier: 'silver', kind: 'new', count: 3, avgCost: write.silver, avgSeconds: 33.1, avgCredits: 2, revenue: 185.04, margin: Math.round((185.04 - write.silver) * 100) / 100 },
+        { tier: 'silver', kind: 'upgrade', count: 5, avgCost: r2(5.9), avgSeconds: 24.8, avgCredits: 2, revenue: 185.04, margin: Math.round((185.04 - r2(5.9)) * 100) / 100 },
+        { tier: 'gold', kind: 'upgrade', count: 4, avgCost: r2(8.7), avgSeconds: 31.5, avgCredits: 2, revenue: 185.04, margin: Math.round((185.04 - r2(8.7)) * 100) / 100 }],
+      tasks: [
+        { task: 'suggest_chips', calls: 286, failed: 1, cost: r2(31.05), perCall: r2(0.11), avgSeconds: 7.2, inTokens: 512400, outTokens: 201300 },
+        { task: 'full_jd', calls: 58, failed: 2, cost: r2(258.4), perCall: r2(4.45), avgSeconds: 26.3, inTokens: 690200, outTokens: 1101800 },
+        { task: 'org_competency', calls: 41, failed: 0, cost: r2(37.9), perCall: r2(0.92), avgSeconds: 14.8, inTokens: 98200, outTokens: 134000 },
+        { task: 'ai_edit', calls: 27, failed: 0, cost: r2(14.83), perCall: r2(0.55), avgSeconds: 9.1, inTokens: 120400, outTokens: 48000 }],
+      daily: ['2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22'].map(function (d, i) {
+        return { day: d, cost: r2([12.4, 30.1, 18.9, 61.2, 48.7, 102.5, 68.38][i]) };
+      }) };
+  }
 
   function local(action, payload) {
     var delay = action === 'jd.generate' ? 2500 : action === 'quest.suggest' ? 600 : 250;

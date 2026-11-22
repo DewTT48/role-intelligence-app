@@ -1,4 +1,4 @@
-/* pages-admin.js – AI settings (admin role only). */
+/* pages-admin.js – admin pages (admin role only): overview, AI cost, customers and credits, AI settings. */
 (function () {
   var h = ui.h;
   window.pages = window.pages || {};
@@ -6,12 +6,11 @@
     full_jd: 'สร้าง JD', ai_edit: 'AI แก้ทีละข้อ / ทั้งหมวด', suggest_chips: 'เสนอตัวเลือก (chips)', org_competency: 'เสนอ Core / Leadership Competency ของบริษัท', quality_check: 'ตรวจคุณภาพ JD ก่อนส่ง'
   };
 
-  window.pages['ai-settings'] = function (view) {
-    if (app.me.user.role !== 'admin') { ui.mount(view, ui.note('err', 'หน้านี้สำหรับผู้ดูแลระบบเท่านั้น')); return; }
+  function aiSettings(view) {
     // draft = what the admin typed/picked; kept across re-renders so a check never wipes the form.
     var state = { settings: null, provider: 'google', models: [], check: null, busy: false, msg: null, draft: { key: '', model: '', effort: null } };
     var body = h('div.grid-2');
-    ui.mount(view, [ui.pageHead('เฉพาะผู้ดูแลระบบ · key เก็บใน Script Properties ไม่อยู่ใน Sheet', 'ตั้งค่า AI'), body]);
+    ui.mount(view, [h('p.muted', { text: 'key เก็บใน Script Properties ไม่อยู่ใน Sheet และไม่ถูกส่งกลับมาที่หน้าเว็บ (เห็นแค่ตัวย่อ)' }), body]);
 
     api.call('ai.settings.get').then(function (s) {
       state.settings = s;
@@ -147,5 +146,238 @@
         h('p.muted', { text: 'งานเล็กใช้โมเดลถูก งานหลักใช้โมเดลที่เก่งกว่า เว้นว่าง = ใช้ตัวหลัก เลือกได้เฉพาะค่ายที่มี key แล้ว' }),
         rows.map(function (r) { return r.el; }), msg, h('div.row.end', {}, save));
     }
+  }
+
+  // ======================= admin home: tabs =======================
+  var TABS = [['overview', 'ภาพรวม'], ['cost', 'ค่า AI'], ['customers', 'ลูกค้าและเครดิต'], ['ai', 'ตั้งค่า AI']];
+  var KIND_LABEL = { 'new': 'สร้างใหม่', upgrade: 'อัปเกรดจากระดับก่อน', rewrite: 'เขียนใหม่ทั้งฉบับ' };
+  var FUNNEL_LABEL = { signup: 'สมัคร', company: 'กรอกข้อมูลบริษัท', firstJd: 'สร้าง JD แรก', paid: 'ซื้อเครดิต' };
+  var ACTION_LABEL = { signup_bonus: 'เครดิตฟรีเมื่อสมัคร', company_profile_bonus: 'โบนัสข้อมูลบริษัท', core_competency_bonus: 'โบนัส Core Competency',
+    leadership_competency_bonus: 'โบนัส Leadership Competency', admin_grant: 'ผู้ดูแลเพิ่มให้', admin_deduct: 'ผู้ดูแลหักออก', purchase: 'ซื้อเครดิต',
+    refund: 'คืนเครดิต', jd_silver: 'สร้าง Role Profile', jd_gold: 'สร้าง Role Blueprint', jd_bronze: 'สร้าง Role Brief', jd_duplicate: 'ทำซ้ำทั้งฉบับ',
+    ai_edit_item: 'AI แก้ทีละข้อ', ai_edit_section: 'AI แก้ทั้งหมวด' };
+  var period = 30;
+
+  function baht(n) {
+    if (n === null || n === undefined) return '–';
+    return Number(n).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ฿';
+  }
+  function num(n) { return Number(n || 0).toLocaleString('th-TH'); }
+  function when(iso) { if (!iso) return '–'; var d = new Date(iso); return isNaN(d) ? '–' : d.toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' }); }
+  function table(head, rows, cls) {
+    return h('div.table-wrap' + (cls ? '.' + cls : ''), {}, h('table', {},
+      h('thead', {}, h('tr', {}, head.map(function (x) { return h('th', { text: x }); }))),
+      h('tbody', {}, rows.length ? rows : [h('tr', {}, h('td.muted', { colspan: String(head.length), text: 'ยังไม่มีข้อมูลในช่วงนี้' }))])));
+  }
+  function stat(label, value, sub, tone) {
+    return h('div.stat' + (tone ? '.' + tone : ''), {}, h('span.stat-label', { text: label }), h('strong.stat-value', { text: value }), sub ? h('span.stat-sub', { text: sub }) : null);
+  }
+  function periodPicker(onChange) {
+    var opts = [[7, '7 วัน'], [30, '30 วัน'], [90, '90 วัน'], ['all', 'ทั้งหมด']];
+    return h('div.seg', { role: 'group', 'aria-label': 'ช่วงเวลา' }, opts.map(function (o) {
+      return h('button.seg-btn' + (period === o[0] ? '.on' : ''), { type: 'button', 'aria-pressed': String(period === o[0]), text: o[1],
+        onclick: function () { period = o[0]; onChange(); } });
+    }));
+  }
+  function loading(el) { ui.mount(el, h('p.muted', { text: 'กำลังโหลด…' })); }
+  function failed(el, e) { ui.mount(el, ui.note('err', ui.errorText(e))); }
+
+  window.pages.admin = function (view, arg) {
+    if (!app.me || app.me.user.role !== 'admin') { ui.mount(view, ui.note('err', 'หน้านี้สำหรับผู้ดูแลระบบเท่านั้น')); return; }
+    var tab = TABS.some(function (t) { return t[0] === arg; }) ? arg : 'overview';
+    var body = h('div.admin-body');
+    ui.mount(view, [
+      ui.pageHead('เฉพาะผู้ดูแลระบบ · ลูกค้ามองไม่เห็นหน้านี้', 'ผู้ดูแลระบบ'),
+      h('nav.admin-tabs', { 'aria-label': 'ส่วนของหน้าผู้ดูแล' }, TABS.map(function (t) {
+        return h('a' + (t[0] === tab ? '.on' : ''), { href: '#admin/' + t[0], text: t[1], 'aria-current': t[0] === tab ? 'page' : null });
+      })),
+      body]);
+    ({ overview: overviewTab, cost: costTab, customers: customersTab, ai: aiSettings })[tab](body);
   };
+  window.pages['ai-settings'] = function (view) { window.pages.admin(view, 'ai'); };
+
+  // ---------------- ภาพรวม ----------------
+  function overviewTab(el) {
+    var out = h('div.stack');
+    ui.mount(el, [h('div.row-between', {}, h('p.muted', { text: 'ตัวเลขคำนวณจากข้อมูลจริงทุกครั้งที่เปิด' }), periodPicker(function () { overviewTab(el); })), out]);
+    loading(out);
+    api.call('admin.overview', { days: period }).then(function (o) {
+      var max = Math.max(1, o.funnel[0].count);
+      ui.mount(out, [
+        o.unpricedModels.length ? ui.note('warn', 'ยังไม่มีราคาของโมเดล ' + o.unpricedModels.join(', ') + ' ค่า AI จึงยังไม่รวมโมเดลนี้ ใส่ราคาได้ที่แท็บค่า AI') : null,
+        h('div.stats', {},
+          stat('ผู้ใช้ทั้งหมด', num(o.users.total), 'ใหม่วันนี้ ' + num(o.users.today) + ' · 7 วัน ' + num(o.users.week) + ' · 30 วัน ' + num(o.users.month)),
+          stat('เข้าใช้ใน 7 วัน', num(o.users.active), o.users.suspended ? 'ถูกระงับ ' + num(o.users.suspended) + ' บัญชี' : 'บริษัททั้งหมด ' + num(o.orgs)),
+          stat('JD ที่สร้าง', num(o.jds.total), 'Brief ' + o.jds.byTier.bronze + ' · Profile ' + o.jds.byTier.silver + ' · Blueprint ' + o.jds.byTier.gold),
+          stat('ตำแหน่งที่เริ่มทำ', num(o.positions), 'รวมที่ยังไม่ได้สร้าง JD')),
+        h('div.stats', {},
+          stat('รายได้', baht(o.revenue), o.revenue ? 'จากการซื้อเครดิตที่ชำระแล้ว' : 'ยังไม่มีระบบชำระเงิน', 'green'),
+          stat('ค่า AI', baht(o.aiCost), 'ค่าที่จ่ายให้ผู้ให้บริการ AI', 'pink'),
+          stat('กำไรขั้นต้น', baht(o.margin), 'รายได้ − ค่า AI (ยังไม่รวมค่าอื่น)'),
+          stat('เครดิตที่ลูกค้าถืออยู่', ui.fmtCredits(o.credits.outstanding), 'แจกฟรี ' + ui.fmtCredits(o.credits.given) + ' · ขาย ' + ui.fmtCredits(o.credits.bought) + ' · ใช้ไป ' + ui.fmtCredits(o.credits.used))),
+        h('section.card', {},
+          h('h2', { text: 'ลูกค้าใหม่ไปถึงขั้นไหน' }),
+          h('p.muted', { text: 'นับเฉพาะคนที่สมัครในช่วงเวลาที่เลือก ช่วยให้เห็นว่าคนหลุดตรงไหน' }),
+          h('ol.funnel', {}, o.funnel.map(function (f, i) {
+            var pct = Math.round(f.count / max * 100);
+            return h('li', {},
+              h('span.funnel-label', { text: FUNNEL_LABEL[f.step] }),
+              h('span.funnel-bar', { 'aria-hidden': 'true' }, h('span', { style: 'width:' + pct + '%' })),
+              h('span.funnel-num', { text: num(f.count) + (i ? ' · ' + pct + '%' : '') }));
+          })))
+      ]);
+    }, function (e) { failed(out, e); });
+  }
+
+  // ---------------- ค่า AI ----------------
+  function costTab(el) {
+    var out = h('div.stack');
+    ui.mount(el, [h('div.row-between', {}, h('p.muted', { text: 'คิดจากจำนวน token ที่บันทึกทุกครั้งที่เรียก AI × ราคาโมเดลด้านล่าง' }), periodPicker(function () { costTab(el); })), out]);
+    loading(out);
+    api.call('admin.aiCost', { days: period }).then(function (r) { renderCost(out, r, el); }, function (e) { failed(out, e); });
+  }
+
+  function renderCost(out, r, el) {
+    var rate = r.bahtPerCredit;
+    var perJd = h('section.card', {},
+      h('h2', { text: 'ต้นทุน AI ต่อ JD หนึ่งฉบับ' }),
+      h('p.muted', { text: 'ตัวเลือกคำตอบ (เฉลี่ยต่อตำแหน่ง) + เขียน JD ครั้งแรกที่ระดับนั้น เทียบกับรายได้จากเครดิต (คิดราคาต่อเครดิตต่ำสุด ' + baht(rate.value) + ' จากแพ็ก ' + rate.pack + ' ไม่รวม VAT)' }),
+      table(['ระดับ', 'ตัวเลือกคำตอบ', 'เขียน JD', 'รวมต่อ JD', 'เครดิต', 'รายได้', 'เหลือหลังหักค่า AI'], r.perJd.map(function (x) {
+        var left = x.total === null ? null : x.revenue - x.total;
+        return h('tr', {}, h('td', {}, ui.tierPill(x.tier)), h('td', { text: baht(x.chips) }), h('td', { text: x.write === null ? 'ยังไม่มีข้อมูล' : baht(x.write) }),
+          h('td', {}, h('strong', { text: x.total === null ? '–' : baht(x.total) })), h('td', { text: x.credits ? ui.fmtCredits(x.credits) : 'ฟรี' }),
+          h('td', { text: baht(x.revenue) }), h('td' + (left !== null && left < 0 ? '.neg' : ''), { text: left === null ? '–' : baht(left) }));
+      })),
+      h('p.small.muted', { text: 'ตัวเลือกคำตอบเฉลี่ย ' + baht(r.chipsPerPosition) + ' ต่อตำแหน่ง (' + num(r.positions) + ' ตำแหน่งในช่วงนี้) · Role Brief ฟรีจึงเป็นต้นทุนทั้งหมด' }));
+
+    var gens = h('section.card', {},
+      h('h2', { text: 'การสร้าง JD แยกระดับและแบบ' }),
+      table(['ระดับ', 'แบบ', 'ครั้ง', 'ค่า AI เฉลี่ย', 'เวลาเฉลี่ย', 'เครดิตเฉลี่ย', 'เหลือต่อครั้ง'], r.generations.map(function (g) {
+        return h('tr', {}, h('td', {}, ui.tierPill(g.tier)), h('td', { text: KIND_LABEL[g.kind] || g.kind }), h('td', { text: num(g.count) }),
+          h('td', { text: baht(g.avgCost) }), h('td', { text: g.avgSeconds + ' วิ' }), h('td', { text: ui.fmtCredits(g.avgCredits) }),
+          h('td' + (g.margin < 0 ? '.neg' : ''), { text: baht(g.margin) }));
+      })),
+      h('p.small.muted', { text: 'เขียนใหม่ทั้งฉบับ 2 ครั้งแรกของแต่ละระดับไม่คิดเครดิต จึงอาจติดลบได้' }));
+
+    var tasks = h('section.card', {},
+      h('h2', { text: 'แยกตามงาน' }),
+      table(['งาน', 'ครั้ง', 'ล้มเหลว', 'ค่า AI รวม', 'ต่อครั้ง', 'เวลาเฉลี่ย', 'token เข้า / ออก'], r.tasks.map(function (t) {
+        return h('tr', {}, h('td', { text: TASK_LABEL[t.task] || t.task }), h('td', { text: num(t.calls) }), h('td' + (t.failed ? '.neg' : ''), { text: num(t.failed) }),
+          h('td', { text: baht(t.cost) }), h('td', { text: baht(t.perCall) }), h('td', { text: t.avgSeconds + ' วิ' }),
+          h('td.mono', { text: num(t.inTokens) + ' / ' + num(t.outTokens) }));
+      })));
+
+    var maxDay = Math.max.apply(null, [0.01].concat(r.daily.map(function (d) { return d.cost; })));
+    var daily = h('section.card', {},
+      h('div.row-between', {}, h('h2', { text: 'ค่า AI รายวัน' }), h('strong', { text: 'รวม ' + baht(r.total) })),
+      r.daily.length ? h('div.daybars', { role: 'img', 'aria-label': 'กราฟค่า AI รายวัน' }, r.daily.map(function (d) {
+        return h('div.daybar', { title: d.day + ' · ' + baht(d.cost) },
+          h('span.daybar-fill', { style: 'height:' + Math.max(2, Math.round(d.cost / maxDay * 100)) + '%' }),
+          h('span.daybar-label', { text: d.day.slice(8) + '/' + d.day.slice(5, 7) }));
+      })) : h('p.muted', { text: 'ยังไม่มีการเรียก AI ในช่วงนี้' }),
+      h('p.small.muted', { text: 'เรียก AI ' + num(r.calls) + ' ครั้ง ล้มเหลว ' + num(r.failed) + ' ครั้ง (ครั้งที่ล้มเหลวมักไม่มีค่าใช้จ่าย)' }));
+
+    ui.mount(out, [
+      r.unpricedModels.length ? ui.note('warn', 'ยังไม่มีราคาของ ' + r.unpricedModels.join(', ') + ' ตัวเลขด้านล่างจึงยังไม่รวมโมเดลนี้') : null,
+      perJd, daily, gens, tasks, pricesCard(r, el)]);
+  }
+
+  function pricesCard(r, el) {
+    var models = Object.keys(r.prices.models);
+    r.modelsSeen.forEach(function (m) { if (models.indexOf(m) < 0) models.push(m); });
+    var rateIn = h('input.mono', { type: 'number', step: '0.01', min: '1', id: 'usd-thb', value: String(r.prices.usdThb) });
+    var inputs = models.map(function (m) {
+      var p = r.prices.models[m] || {};
+      return { model: m,
+        i: h('input.mono', { type: 'number', step: '0.01', min: '0', value: p['in'] === undefined ? '' : String(p['in']), 'aria-label': m + ' ราคา input' }),
+        o: h('input.mono', { type: 'number', step: '0.01', min: '0', value: p.out === undefined ? '' : String(p.out), 'aria-label': m + ' ราคา output' }) };
+    });
+    var msg = h('div');
+    var save = ui.button('primary', 'บันทึกราคา', function () {
+      var payload = { usdThb: Number(rateIn.value), models: {}, days: period };
+      inputs.forEach(function (x) { if (x.i.value !== '' && x.o.value !== '') payload.models[x.model] = { 'in': Number(x.i.value), out: Number(x.o.value) }; });
+      ui.busy(save, 'กำลังบันทึก…', function () {
+        return api.call('admin.prices.save', payload).then(function (res) { renderCost(el.querySelector('.stack'), res, el); ui.toast('บันทึกราคาแล้ว คำนวณใหม่ให้แล้ว'); });
+      }).catch(function (e) { ui.mount(msg, ui.note('err', ui.errorText(e))); });
+    });
+    return h('section.card', {},
+      h('h2', { text: 'ราคาโมเดล' }),
+      h('p.muted', { text: 'ดอลลาร์ต่อ 1 ล้าน token ตามราคาของผู้ให้บริการ (การคิดของ AI นับเป็น output) แก้ได้เมื่อราคาหรืออัตราแลกเปลี่ยนเปลี่ยน' }),
+      h('label.field', { for: 'usd-thb', style: 'max-width:220px' }, 'อัตราแลกเปลี่ยน (บาทต่อ 1 ดอลลาร์)', rateIn),
+      table(['โมเดล', 'input $/1M', 'output $/1M'], inputs.map(function (x) {
+        return h('tr', {}, h('td.mono', { text: x.model + (r.modelsSeen.indexOf(x.model) >= 0 ? ' · ใช้อยู่' : '') }), h('td', {}, x.i), h('td', {}, x.o));
+      }), 'prices'),
+      msg, h('div.row.end', {}, save));
+  }
+
+  // ---------------- ลูกค้าและเครดิต ----------------
+  function customersTab(el) {
+    var list = h('div.stack');
+    var q = h('input', { type: 'search', placeholder: 'ค้นหาด้วยอีเมลหรือชื่อบริษัท', 'aria-label': 'ค้นหาลูกค้า' });
+    var search = ui.debounce(function () { load(); }, 350);
+    q.addEventListener('input', search);
+    ui.mount(el, [h('div.row', {}, q), list]);
+    function load() {
+      loading(list);
+      api.call('admin.orgs', { q: q.value }).then(function (r) {
+        ui.mount(list, [
+          h('p.muted', { text: 'พบ ' + num(r.total) + ' บริษัท' + (r.total > r.rows.length ? ' แสดง ' + r.rows.length + ' รายการล่าสุด' : '') + ' · ไม่แสดงเนื้อหา JD ของลูกค้า' }),
+          table(['บริษัท', 'ผู้ใช้', 'เครดิต', 'ตำแหน่ง / JD', 'ใช้ล่าสุด', ''], r.rows.map(row), 'customers')]);
+      }, function (e) { failed(list, e); });
+    }
+    function row(o) {
+      var users = h('div.stack-tight', {}, o.users.map(function (u) {
+        var off = u.status !== 'active';
+        return h('div.user-line', {},
+          h('span' + (off ? '.struck' : ''), { text: u.email }),
+          u.role === 'admin' ? h('span.pill', { text: 'admin' }) : null,
+          off ? h('span.pill.gray', { text: 'ถูกระงับ' }) : null,
+          u.role === 'admin' ? null : ui.button('ghost.small-btn', off ? 'เปิดใช้' : 'ระงับ', function () { toggleUser(u, off); }));
+      }));
+      return h('tr', {},
+        h('td', {}, h('strong', { text: o.name || '(ยังไม่ตั้งชื่อ)' }), o.business_type ? h('div.small.muted', { text: o.business_type }) : null),
+        h('td', {}, users),
+        h('td', {}, h('strong.credit-cell', { text: ui.fmtCredits(o.balance) })),
+        h('td', { text: num(o.positions) + ' / ' + num(o.jds) }),
+        h('td.small', { text: when(o.last_login_at) }),
+        h('td', {}, h('div.row-tight', {},
+          ui.button('small-btn', 'ปรับเครดิต', function () { adjust(o); }, { icon: 'credits' }),
+          ui.button('ghost.small-btn', 'ประวัติ', function () { ledger(o); }, { icon: 'history' }))));
+    }
+    function adjust(o) {
+      var amount = h('input.mono', { type: 'number', step: '0.5', id: 'adj-amount', placeholder: 'เช่น 10 หรือ -2' });
+      var reason = h('input', { type: 'text', id: 'adj-reason', maxlength: '200', placeholder: 'เช่น ให้ลองใช้งาน, ชดเชยระบบขัดข้อง' });
+      var body = h('div.stack', {},
+        h('p', { text: (o.name || o.users.map(function (u) { return u.email; }).join(', ')) + ' · ตอนนี้มี ' + ui.fmtCredits(o.balance) + ' เครดิต' }),
+        h('label.field', { for: 'adj-amount' }, 'จำนวน (ใส่ลบเพื่อหัก)', amount),
+        h('label.field', { for: 'adj-reason' }, 'เหตุผล (บันทึกไว้ในประวัติ แก้ทีหลังไม่ได้)', reason));
+      ui.confirmBox('ปรับเครดิต', body, 'บันทึก').then(function (yes) {
+        if (!yes) return;
+        api.call('admin.credits.adjust', { orgId: o.id, amount: Number(amount.value), reason: reason.value }).then(function (r) {
+          ui.toast('บันทึกแล้ว เหลือ ' + ui.fmtCredits(r.balance) + ' เครดิต');
+          if (app.me.org.id === o.id) app.refreshMe();
+          load();
+        }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+      });
+    }
+    function ledger(o) {
+      api.call('admin.org.ledger', { orgId: o.id }).then(function (rows) {
+        var body = table(['วันที่', 'รายการ', 'เครดิต', 'หมายเหตุ'], rows.map(function (r) {
+          return h('tr', {}, h('td.small', { text: when(r.created_at) }), h('td', { text: ACTION_LABEL[r.action] || r.action }),
+            h('td.mono' + (r.amount < 0 ? '.neg' : '.pos'), { text: (r.amount > 0 ? '+' : '') + ui.fmtCredits(r.amount) }), h('td.small', { text: r.note || '' }));
+        }), 'ledger');
+        ui.confirmBox('ประวัติเครดิต · ' + (o.name || o.users[0] && o.users[0].email || ''), body, 'ปิด');
+      }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+    }
+    function toggleUser(u, isOff) {
+      var title = isOff ? 'เปิดใช้บัญชีนี้อีกครั้ง?' : 'ระงับบัญชีนี้?';
+      var text = isOff ? u.email + ' จะเข้าระบบได้ตามปกติ' : u.email + ' จะถูกออกจากระบบทันทีและเข้าระบบไม่ได้ ข้อมูลและเครดิตยังอยู่ครบ เปิดใช้ใหม่ได้ภายหลัง';
+      ui.confirmBox(title, text, isOff ? 'เปิดใช้' : 'ระงับบัญชี').then(function (yes) {
+        if (!yes) return;
+        api.call('admin.user.status', { userId: u.id, suspend: !isOff }).then(function () { ui.toast(isOff ? 'เปิดใช้แล้ว' : 'ระงับแล้ว'); load(); },
+          function (e) { ui.toast(ui.errorText(e), 'err'); });
+      });
+    }
+    load();
+  }
 })();

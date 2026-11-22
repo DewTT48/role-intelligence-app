@@ -54,24 +54,33 @@
     var text = node.nodeValue;
     if (!text || !THAI.test(text) || text.length < 6) return;
     var parent = node.parentNode;
-    if (!parent || SKIP[parent.nodeName] || parent.isContentEditable || (parent.classList && (parent.classList.contains('tw') || parent.classList.contains('tw-run')))) return;
+    if (!parent || SKIP[parent.nodeName] || parent.isContentEditable || (parent.classList && (parent.classList.contains('tw') || parent.classList.contains('tw-run') || parent.classList.contains('tw-chunk')))) return;
     var parts = phrases(text);
     if (parts.length < 2) return;
     // One wrapper per text, so flex/grid parents still see a single item (no gaps between phrases).
     var run = document.createElement('span');
     run.className = 'tw-run';
+    // Thai writers put a space where a clause ends, so a space is the best place for a line to end.
+    // Each Thai stretch between spaces goes into one inline-block (.tw-chunk): it moves to the next line
+    // whole, and only breaks between its phrases when it is wider than the whole line.
+    var multi = parts.some(function (p) { return !p.trim(); });
+    var box = run;
     parts.forEach(function (p, i) {
-      if (!p.trim()) { run.appendChild(document.createTextNode(p)); return; }
-      if (i > 0 && parts[i - 1].trim()) run.appendChild(document.createElement('wbr'));
-      if (THAI.test(p)) { var s = document.createElement('span'); s.className = 'tw'; s.textContent = p; run.appendChild(s); }
-      else run.appendChild(document.createTextNode(p));
+      if (!p.trim()) { box = run; run.appendChild(document.createTextNode(p)); return; }
+      if (multi && box === run && THAI.test(p)) {
+        box = document.createElement('span');
+        box.className = 'tw-chunk';
+        run.appendChild(box);
+      } else if (i > 0 && parts[i - 1].trim()) box.appendChild(document.createElement('wbr'));
+      if (THAI.test(p)) { var s = document.createElement('span'); s.className = 'tw'; s.textContent = p; box.appendChild(s); }
+      else box.appendChild(document.createTextNode(p));
     });
     parent.replaceChild(run, node);
   }
 
   function walk(root) {
     if (root.nodeType === 3) { wrapNode(root); return; }
-    if (root.nodeType !== 1 || SKIP[root.nodeName] || (root.classList && (root.classList.contains('tw') || root.classList.contains('tw-run')))) return;
+    if (root.nodeType !== 1 || SKIP[root.nodeName] || (root.classList && (root.classList.contains('tw') || root.classList.contains('tw-run') || root.classList.contains('tw-chunk')))) return;
     var tw = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     var list = [];
     while (tw.nextNode()) list.push(tw.currentNode);

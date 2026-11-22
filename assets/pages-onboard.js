@@ -79,7 +79,7 @@
     var el = h('div.tip', { role: 'note' },
       h('span.tip-icon', { 'aria-hidden': 'true' }, ui.icon('info')),
       h('span.tip-text', { text: text }),
-      ui.button('ghost.small-btn', 'เข้าใจแล้ว', function () { dismiss(id); el.remove(); }));
+      ui.button('tip-ok', 'เข้าใจแล้ว', function () { dismiss(id); el.remove(); }, { icon: 'check', 'aria-label': 'เข้าใจแล้ว ซ่อนคำแนะนำนี้' }));
     return el;
   }
   function dismiss(id) {
