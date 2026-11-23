@@ -114,7 +114,8 @@
   function view(p) {
     var vs = db.versions.filter(function (v) { return v.positionId === p.id; });
     var last = vs[vs.length - 1];
-    return Object.assign({}, p, { latestVersion: last ? last.version : 0, latestTier: last ? last.tier : '' });
+    return Object.assign({}, p, { latestVersion: last ? last.version : 0, latestTier: last ? last.tier : '',
+      jdLang: last ? (last.jd.lang || 'th') : (p.jdLang || db.org.jd_lang || 'th'), answerLang: p.answerLang || 'th' });
   }
   function nextCode() {
     var pre = db.org.code_prefix || 'JD-';
@@ -255,7 +256,7 @@
     },
     'org.update': function (p) {
       var was = complete();
-      ['name', 'business_type', 'main_goal', 'code_prefix'].forEach(function (k) { if (p[k] !== undefined) db.org[k] = String(p[k]).trim(); });
+      ['name', 'business_type', 'main_goal', 'code_prefix', 'jd_lang'].forEach(function (k) { if (p[k] !== undefined) db.org[k] = String(p[k]).trim(); });
       var bonus = 0;
       if (!was && complete() && !db.ledger.some(function (r) { return r.action === 'company_profile_bonus'; })) { db.ledger.push({ action: 'company_profile_bonus', amount: 1, note: 'โบนัสกรอกข้อมูลบริษัท', at: now() }); bonus = 1; }
       return { bonus: bonus, me: me() };
@@ -347,7 +348,7 @@
     'jd.versions': function (p) {
       return vers(p.positionId).map(function (v, i) {
         var m = v.jd.meta || {};
-        var note = m.edit_note || (m.restored_from ? 'กลับไปใช้ Rev. ' + m.restored_from : m.copied_from ? 'คัดลอกจาก ' + m.copied_from
+        var note = m.edit_note || (m.translated_from ? 'เปลี่ยนภาษาเป็น' + (v.jd.lang === 'en' ? 'อังกฤษ' : 'ไทย') : m.restored_from ? 'กลับไปใช้ Rev. ' + m.restored_from : m.copied_from ? 'คัดลอกจาก ' + m.copied_from
           : m.upgraded_from ? 'อัปเกรดเป็น ' + TNAME[v.tier] + ' (เพิ่มหมวดใหม่ หมวดเดิมไม่เปลี่ยน)' : (i ? 'สร้างใหม่ทั้งฉบับ ' : 'สร้าง ') + TNAME[v.tier]);
         return { version: v.version, tier: v.tier, note: note, created_at: v.created_at, by: db.user ? db.user.email : '' };
       }).reverse();
@@ -367,11 +368,27 @@
       var row = p.id ? pos(p.id) : null;
       if (!row) { row = { id: 'pos_' + Date.now(), status: 'draft', paidTier: '', code: nextCode() }; db.positions.push(row); }
       row.answers = p.answers || {}; row.skipped = p.skipped || [];
+      if (p.jdLang) row.jdLang = p.jdLang;
+      if (p.answerLang) row.answerLang = p.answerLang;
       row.title = row.answers.position_title || ''; row.department = row.answers.department || ''; row.updated_at = now();
       return view(row);
     },
     'positions.delete': function (p) { db.positions = db.positions.filter(function (x) { return x.id !== p.id; }); return { deleted: true }; },
     'jd.quote': function (p) { return price(pos(p.positionId), p.tier); },
+    'jd.translate': function (p) {
+      var row = pos(p.positionId);
+      var last = vers(row.id).slice(-1)[0];
+      if (!last) throw fail('NOT_FOUND', 'ยังไม่มี JD ของตำแหน่งนี้');
+      if ((last.jd.lang || 'th') === p.lang) throw fail('SAME_LANG', 'JD นี้เป็นภาษานี้อยู่แล้ว');
+      if (balance() < 1) throw fail('NOT_ENOUGH_CREDITS', 'เครดิตไม่พอ', { needed: 1, balance: balance() });
+      db.ledger.push({ action: 'jd_translate', amount: -1, note: row.code + ' → ' + p.lang, at: now() });
+      var jd = JSON.parse(JSON.stringify(last.jd));
+      jd.lang = p.lang === 'en' ? 'en' : 'th';
+      jd.meta = Object.assign({}, jd.meta, { translated_from: last.jd.lang || 'th' });
+      delete jd.meta.edit_note;
+      row.jdLang = jd.lang;
+      return { version: addVersion(row.id, last.tier, jd), jd: jd, charged: 1, credits: me().credits };
+    },
     'jd.generate': function (p) {
       var row = pos(p.positionId);
       var pr = price(row, p.tier);
@@ -380,6 +397,8 @@
       if (pr.credits) db.ledger.push({ action: 'jd_' + p.tier, amount: -pr.credits, note: row.title + ' · ' + p.tier, at: now() });
       db.gens.push({ positionId: row.id, tier: p.tier, charged: pr.credits, at: now() });
       var jd = buildJd(row, p.tier);
+      var prev = vers(row.id).slice(-1)[0];
+      jd.lang = prev ? (prev.jd.lang || 'th') : (row.jdLang || db.org.jd_lang || 'th');   // demo text stays Thai; labels follow the language
       // Upgrade: existing sections stay exactly as they are; summary sections get extra items.
       var last = vers(row.id).slice(-1)[0];
       var upgraded = !!(last && RANK[p.tier] > RANK[last.tier]);

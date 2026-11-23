@@ -77,6 +77,9 @@
     var type = h('input', { type: 'text', id: 'org-type', value: org.business_type || '', placeholder: 'เช่น ค้าปลีกสินค้าอุปโภคบริโภค 25 สาขา' });
     var goal = h('input', { type: 'text', id: 'org-goal', value: org.main_goal || '', placeholder: 'เช่น ขยายเป็น 40 สาขา และลดสินค้าขาดชั้น' });
     var prefix = h('input', { type: 'text', id: 'org-prefix', value: org.code_prefix || '', placeholder: 'JD-', maxlength: '12' });
+    var jdLang = h('select', { id: 'org-lang' },
+      h('option', { value: 'th', text: 'ภาษาไทย', selected: org.jd_lang !== 'en' }),
+      h('option', { value: 'en', text: 'ภาษาอังกฤษ (English)', selected: org.jd_lang === 'en' }));
     var msg = h('div');
     var sets = {
       core: { box: h('section.card.narrow.core-card', { id: 'core' }), no: '2', title: 'Core Competency ของบริษัท',
@@ -90,7 +93,7 @@
     };
     var save = ui.button('primary', 'บันทึก', function () {
       ui.busy(save, 'กำลังบันทึก…', function () {
-        return api.call('org.update', { name: name.value, business_type: type.value, main_goal: goal.value, code_prefix: prefix.value }).then(function (r) {
+        return api.call('org.update', { name: name.value, business_type: type.value, main_goal: goal.value, code_prefix: prefix.value, jd_lang: jdLang.value }).then(function (r) {
           app.setMe(r.me);
           if (r.bonus) ui.toast('ได้ +' + r.bonus + ' เครดิต ขอบคุณที่กรอกข้อมูลบริษัท');
           else ui.toast('บันทึกแล้ว');
@@ -111,6 +114,7 @@
         h('label.field', { for: 'org-type' }, 'ธุรกิจทำอะไร', type),
         h('label.field', { for: 'org-goal' }, 'เป้าหมายหลักปีนี้', goal),
         h('label.field', { for: 'org-prefix' }, 'คำนำหน้ารหัส JD (ไม่บังคับ เช่น HR- ได้รหัส HR-0001; เว้นว่าง = JD-)', prefix),
+        h('label.field', { for: 'org-lang' }, 'ภาษาเริ่มต้นของ JD ใหม่ (เปลี่ยนได้ทีละตำแหน่งในหน้าสร้าง JD)', jdLang),
         msg,
         h('div.row.end', {}, org.complete ? null : ui.button('ghost', 'ข้ามไปก่อน', function () { app.go('#quest'); }), save)),
       sets.core.box, sets.leadership.box
@@ -281,7 +285,7 @@
 
   // ---------------- credits ----------------
   var ACTION_LABEL = {
-    signup_bonus: 'เครดิตฟรีเมื่อสมัคร', company_profile_bonus: 'โบนัสข้อมูลบริษัท', core_competency_bonus: 'โบนัส Core Competency', jd_duplicate: 'คัดลอก JD ทั้งฉบับ', ai_edit_item: 'AI แก้ทีละข้อ', ai_edit_section: 'AI แก้ทั้งหมวด', leadership_competency_bonus: 'โบนัส Leadership Competency', admin_grant: 'เครดิตจากผู้ดูแลระบบ', admin_deduct: 'ผู้ดูแลปรับลด', purchase: 'ซื้อเครดิต', jd_silver: 'สร้าง Role Profile',
+    signup_bonus: 'เครดิตฟรีเมื่อสมัคร', company_profile_bonus: 'โบนัสข้อมูลบริษัท', core_competency_bonus: 'โบนัส Core Competency', jd_translate: 'เปลี่ยนภาษา JD', jd_duplicate: 'คัดลอก JD ทั้งฉบับ', ai_edit_item: 'AI แก้ทีละข้อ', ai_edit_section: 'AI แก้ทั้งหมวด', leadership_competency_bonus: 'โบนัส Leadership Competency', admin_grant: 'เครดิตจากผู้ดูแลระบบ', admin_deduct: 'ผู้ดูแลปรับลด', purchase: 'ซื้อเครดิต', jd_silver: 'สร้าง Role Profile',
     jd_gold: 'สร้าง Role Blueprint', refund: 'คืนเครดิต', topup: 'เติมเครดิต', launch_bonus: 'โบนัสเปิดตัว', test: 'ปรับเครดิต'
   };
 

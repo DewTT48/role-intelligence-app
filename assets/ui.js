@@ -55,7 +55,8 @@
     check: ['M5 12l5 5 9-10'],
     info: ['M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z', 'M12 11v6', 'M12 7.5v.5'],
     down: ['M12 5v14', 'M6 13l6 6 6-6'],
-    logout: ['M14 4h5v16h-5', 'M10 8l-4 4 4 4', 'M6 12h10']
+    logout: ['M14 4h5v16h-5', 'M10 8l-4 4 4 4', 'M6 12h10'],
+    globe: ['M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0-18z', 'M3 12h18', 'M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9', 'M12 3c-2.5 2.6-3.8 5.6-3.8 9s1.3 6.4 3.8 9']
   };
   function icon(name) {
     var NS = 'http://www.w3.org/2000/svg';
@@ -93,14 +94,14 @@
   }
 
   /** In-page confirm (no window.confirm). Resolves true/false. */
-  function confirmBox(title, body, okLabel) {
+  function confirmBox(title, body, okLabel, cancelLabel) {
     return new Promise(function (resolve) {
       var back = h('div.modal-back', { role: 'dialog', 'aria-modal': 'true', 'aria-label': title });
       function close(v) { back.remove(); resolve(v); }
       back.appendChild(h('div.modal', {},
         h('h2', { text: title }),
         typeof body === 'string' ? h('p', { text: body }) : body,
-        h('div.row.end', {}, button('', 'ยกเลิก', function () { close(false); }), button('primary', okLabel || 'ตกลง', function () { close(true); }))));
+        h('div.row.end', {}, button('', cancelLabel || 'ยกเลิก', function () { close(false); }), button('primary', okLabel || 'ตกลง', function () { close(true); }))));
       back.addEventListener('click', function (e) { if (e.target === back) close(false); });
       document.body.appendChild(back);
       back.querySelector('.btn.primary').focus();

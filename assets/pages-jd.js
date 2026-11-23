@@ -22,7 +22,19 @@
     if (lines.length < 2) return s.replace(/^\s*[•·]\s*/, '');
     return h('ul.cell-list', {}, lines.map(function (l) { return h('li', { text: l }); }));
   }
-  function kv(pairs) { return table(['หัวข้อ', 'รายละเอียด'], pairs); }
+  // Labels inside the JD follow the JD's language (set by render for the JD on screen); the app's own buttons stay Thai.
+  var DOC = {
+    th: { topic: 'หัวข้อ', detail: 'รายละเอียด', own: 'ตัดสินใจได้เอง', approval: 'ต้องได้รับอนุมัติ', internal: 'ภายใน', external: 'ภายนอก',
+      education: 'การศึกษา', experience: 'ประสบการณ์', technical: 'ทักษะเฉพาะทาง', digital: 'ทักษะระบบ/ดิจิทัล', language: 'ภาษา', cert: 'ใบอนุญาต/ประกาศนียบัตร', personal: 'คุณลักษณะส่วนบุคคล',
+      behaviours: 'ตัวอย่างพฤติกรรม', env: 'สภาพแวดล้อมการทำงาน', tools: 'เครื่องมือและระบบ', collab: 'รูปแบบการทำงานร่วมกัน', constraints: 'ข้อจำกัดหรือเงื่อนไข',
+      factor: 'ปัจจัยประเมินงาน', hrArea: 'งาน HR', howTo: 'วิธีนำไปใช้', verify: 'จุดที่ต้องตรวจสอบ', reportsTo: 'รายงานตรงต่อ ', omitted: 'หมวดที่ยังไม่ได้สร้างเพราะข้อมูลยังไม่พอ: ' },
+    en: { topic: 'Item', detail: 'Details', own: 'Decides independently', approval: 'Requires approval', internal: 'Internal', external: 'External',
+      education: 'Education', experience: 'Experience', technical: 'Technical Skills', digital: 'Digital / System Skills', language: 'Languages', cert: 'Licences / Certificates', personal: 'Personal Attributes',
+      behaviours: 'Behavioural Indicators', env: 'Work Environment', tools: 'Tools and Systems', collab: 'Collaboration Pattern', constraints: 'Constraints or Conditions',
+      factor: 'Evaluation Factor', hrArea: 'HR Area', howTo: 'How to Use', verify: 'What to Verify', reportsTo: 'Reports to ', omitted: 'Sections not written yet because information is missing: ' }
+  };
+  var D = DOC.th;
+  function kv(pairs) { return table([D.topic, D.detail], pairs); }
   function list(items) { return h('ol.jd-list', {}, (items || []).map(function (x) { return h('li', { text: x }); })); }
 
   /** Renders one section value the same way the Word document lays it out. */
@@ -31,19 +43,19 @@
     key_responsibilities: function (v) { return table(['Responsibility', 'Frequency', 'Stakeholder', 'Expected Standard'], v.map(function (x) { return [x.responsibility, x.frequency, x.stakeholder, x.expected_standard]; })); },
     expected_outputs_summary: list,
     key_indicators: function (v) { return table(['Indicator', 'Measurement', 'Target', 'Review'], v.map(function (x) { return [x.indicator, x.measurement_logic, x.suggested_target, x.review_frequency]; })); },
-    decision_making_authority: function (v) { return kv([['ตัดสินใจได้เอง', v.own_authority], ['ต้องได้รับอนุมัติ', v.requires_approval]]); },
-    working_relationship: function (v) { return kv([['ภายใน', v.internal], ['ภายนอก', v.external]]); },
+    decision_making_authority: function (v) { return kv([[D.own, v.own_authority], [D.approval, v.requires_approval]]); },
+    working_relationship: function (v) { return kv([[D.internal, v.internal], [D.external, v.external]]); },
     qualifications: function (v) {
-      return kv([['การศึกษา', v.education], ['ประสบการณ์', v.experience], ['ทักษะเฉพาะทาง', v.technical_skills], ['ทักษะระบบ/ดิจิทัล', v.digital_system_skills],
-        ['ภาษา', v.language_skills], ['ใบอนุญาต/ประกาศนียบัตร', v.certification], ['คุณลักษณะส่วนบุคคล', v.personal_attributes]]);
+      return kv([[D.education, v.education], [D.experience, v.experience], [D.technical, v.technical_skills], [D.digital, v.digital_system_skills],
+        [D.language, v.language_skills], [D.cert, v.certification], [D.personal, v.personal_attributes]]);
     },
-    required_competencies: function (v) { return table(['Competency', 'Type', 'Definition', 'ตัวอย่างพฤติกรรม', 'Why It Matters'], v.map(function (x) { return [x.competency, x.type, x.definition, x.behavioral_indicators, x.why_it_matters]; })); },
+    required_competencies: function (v) { return table(['Competency', 'Type', 'Definition', D.behaviours, 'Why It Matters'], v.map(function (x) { return [x.competency, x.type, x.definition, x.behavioral_indicators, x.why_it_matters]; })); },
     work_context_conditions: function (v) {
-      return kv([['สภาพแวดล้อมการทำงาน', v.work_environment], ['เครื่องมือและระบบ', v.tools_systems], ['รูปแบบการทำงานร่วมกัน', v.collaboration_pattern], ['ข้อจำกัดหรือเงื่อนไข', v.constraints_conditions]]);
+      return kv([[D.env, v.work_environment], [D.tools, v.tools_systems], [D.collab, v.collaboration_pattern], [D.constraints, v.constraints_conditions]]);
     },
-    job_evaluation_information_summary: function (v) { return table(['ปัจจัยประเมินงาน', 'ข้อมูลประกอบ'], DIM.map(function (d) { return [d[1], v[d[0]]]; })); },
+    job_evaluation_information_summary: function (v) { return table([D.factor, D.detail], DIM.map(function (d) { return [d[1], v[d[0]]]; })); },
     review_checklist: list,
-    hr_usage_guidance: function (v) { return table(['งาน HR', 'วิธีนำไปใช้', 'จุดที่ต้องตรวจสอบ'], v.map(function (x) { return [x.hr_area, x.application_guidance, x.validation_point]; })); },
+    hr_usage_guidance: function (v) { return table([D.hrArea, D.howTo, D.verify], v.map(function (x) { return [x.hr_area, x.application_guidance, x.validation_point]; })); },
     human_validation_points: list
   };
 
@@ -354,13 +366,16 @@
 
     function render(v, meta) {
       var jd = v.jd;
+      var isEn = jd.lang === 'en';
+      D = DOC[isEn ? 'en' : 'th'];
       var titleOf = {};
-      meta.sections.forEach(function (s) { titleOf[s.key] = s.title; });
+      meta.sections.forEach(function (s) { titleOf[s.key] = isEn ? (s.title_en || s.title) : s.title; });
       var actions = h('div.row', {},
         v.latest ? ui.button('', 'แก้คำตอบ', function () { app.go('#quest/' + positionId); }, { icon: 'quest' }) : null,
         v.latest && v.tier !== 'gold' ? ui.button('gold-btn', v.tier === 'bronze' ? 'อัปเกรดเป็น Role Profile / Blueprint' : 'อัปเกรดเป็น Role Blueprint (+2)', function () { app.go('#quest/' + positionId); }) : null,
         v.tier === 'bronze' ? null : downloadBtn(),
         ui.button('', 'ประวัติ · ' + v.versions + ' Rev.', function () { history(); }, { icon: 'history' }),
+        v.latest ? ui.button('', isEn ? 'เปลี่ยนเป็นภาษาไทย' : 'เปลี่ยนเป็นภาษาอังกฤษ', function () { changeLang(); }, { icon: 'globe' }) : null,
         v.latest ? ui.button('', 'ทำซ้ำ', function () { openDuplicate({ id: positionId, code: v.code, title: jd.title, latestVersion: v.version }); }, { icon: 'copy' }) : null,
         v.latest ? ui.button('ghost', 'แก้รหัส', function () { editCode(); }, { icon: 'edit' }) : null,
         v.latest ? ui.button('ghost.danger', 'ลบ', function () { confirmDelete({ id: positionId, code: v.code, title: jd.title, latestVersion: v.versions }, function () { app.go('#jds'); }); }, { icon: 'trash' }) : null);
@@ -399,7 +414,7 @@
       app.leaveGuard = null;
 
       ui.mount(view, [
-        ui.pageHead([v.code, 'Rev. ' + v.version, new Date(v.created_at).toLocaleString('th-TH')].filter(Boolean).join(' · '), jd.title || 'JD', ui.tierPill(v.tier)),
+        ui.pageHead([v.code, 'Rev. ' + v.version, new Date(v.created_at).toLocaleString('th-TH'), isEn ? 'JD ภาษาอังกฤษ' : ''].filter(Boolean).join(' · '), jd.title || 'JD', ui.tierPill(v.tier)),
         actions,
         v.latest ? null : h('div.note.info.core-nudge', { role: 'status' },
           h('span', { text: 'กำลังดู Rev. ' + v.version + ' ซึ่งเป็นฉบับเก่า (ดูอย่างเดียว) · ฉบับล่าสุดคือ Rev. ' + v.versions }),
@@ -416,9 +431,9 @@
             ' ครั้งใน JD นี้ จากนั้นทีละข้อ ' + v.editCosts.item + ' / ทั้งหมวด ' + v.editCosts.section + ' เครดิต · ทุกการบันทึกเป็น Rev. ใหม่' })),
         h('article.card.jd-doc', {},
           h('div.preview-head', {}, h('span.eyebrow', { text: 'JOB DESCRIPTION · ' + ui.TIER[v.tier].label.toUpperCase() }), h('strong.preview-title', { text: jd.title }),
-            h('span.muted.small', { text: [app.me.org.name, jd.department, jd.reports_to ? 'รายงานตรงต่อ ' + jd.reports_to : ''].filter(Boolean).join(' · ') })),
+            h('span.muted.small', { text: [app.me.org.name, jd.department, jd.reports_to ? D.reportsTo + jd.reports_to : ''].filter(Boolean).join(' · ') })),
           jd.order.map(function (key, i) { return sectionBlock(key, i); }),
-          jd.omitted && jd.omitted.length ? h('p.muted.small', { text: 'หมวดที่ยังไม่ได้สร้างเพราะข้อมูลยังไม่พอ: ' + jd.omitted.map(function (o) { return o.title; }).join(', ') }) : null),
+          jd.omitted && jd.omitted.length ? h('p.muted.small', { text: D.omitted + jd.omitted.map(function (o) { return o.title; }).join(', ') }) : null),
         bar
       ]);
 
@@ -622,6 +637,35 @@
           return h('div.row.end', {}, ui.button('ghost', 'ยกเลิก', close), save);
         });
         input.select();
+      }
+
+      /** Rewrites this JD in the other language as a new Rev. (1 credit). The answers stay as they are. */
+      function changeLang() {
+        var to = isEn ? 'th' : 'en';
+        var toName = to === 'en' ? 'ภาษาอังกฤษ' : 'ภาษาไทย';
+        var cost = (app.me.credits.costs || {}).translateJd || 1;
+        var body = h('div.stack', {},
+          h('p', { text: 'AI เขียน JD ฉบับนี้ใหม่เป็น' + toName + ' ทุกหมวด รวมส่วนที่คุณแก้ไว้ โครงเดิมไม่เปลี่ยน: หมวด จำนวนข้อ และประเภท Competency เท่าเดิม' }),
+          h('p', { text: 'ได้เป็น Rev. ' + (v.versions + 1) + ' ฉบับ' + (isEn ? 'ภาษาอังกฤษ' : 'ภาษาไทย') + 'เดิมยังอยู่ในประวัติเวอร์ชัน คำตอบที่ใช้สร้าง JD ไม่เปลี่ยน' }),
+          h('p', {}, 'ใช้ ', h('strong', { text: cost + ' เครดิต' }), ' · เหลือ ' + ui.fmtCredits(app.me.credits.balance) + ' เครดิต'),
+          h('p.muted.small', { text: 'ใช้เวลาราว 1 นาที ถ้าระบบขัดข้องจะคืนเครดิตอัตโนมัติ' }));
+        ui.confirmBox('เปลี่ยน JD เป็น' + toName, body, 'เปลี่ยนภาษา · ' + cost + ' เครดิต').then(function (yes) {
+          if (!yes) return;
+          var back = h('div.modal-back', { role: 'alertdialog', 'aria-label': 'กำลังเปลี่ยนภาษา' },
+            h('div.modal.center', {}, h('div.spinner', { 'aria-hidden': 'true' }), h('h2', { text: 'กำลังเขียนเป็น' + toName }),
+              h('p.muted.small', { text: 'ใช้เวลาราว 1 นาที อย่าเพิ่งปิดหน้านี้' })));
+          document.body.appendChild(back);
+          return api.call('jd.translate', { positionId: positionId, version: v.version, lang: to }).then(function (r) {
+            back.remove();
+            app.refreshMe();
+            ui.toast('เปลี่ยนเป็น' + toName + 'แล้ว เป็น Rev. ' + r.version + ' ใช้ ' + r.charged + ' เครดิต');
+            return reload();
+          }, function (e) { back.remove(); throw e; });
+        }).catch(function (e) {
+          if (e.code === 'NOT_ENOUGH_CREDITS') {
+            ui.confirmBox('เครดิตไม่พอ', ui.errorText(e), 'ไปหน้าเครดิต').then(function (y) { if (y) app.go('#credits'); });
+          } else ui.toast(ui.errorText(e), 'err');
+        });
       }
 
       function downloadBtn() {
