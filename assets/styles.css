@@ -81,7 +81,7 @@ input[type=text], input[type=password], input[type=search], input[type=number], 
 .providers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; border: 0; padding: 0; margin: 0; }
 .provider { display: flex; flex-direction: column; gap: 2px; padding: 12px; border-radius: 12px; border: 1.5px solid var(--line-strong); cursor: pointer; }
 .provider:has(input:checked) { border: 2px solid var(--blue); background: var(--blue-soft); }
-.provider span { display: flex; gap: 8px; align-items: center; font-weight: 600; }
+.provider > span { display: flex; gap: 8px; align-items: center; font-weight: 600; }
 .provider small { color: var(--muted); font-size: 12px; }
 
 .checks { display: flex; flex-direction: column; }
@@ -252,7 +252,7 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
 .core-card { margin-top: 16px; }
 .core-card h2 { font-size: 18px; margin-bottom: 4px; }
 .core-list { margin: 8px 0; padding-left: 20px; display: grid; gap: 8px; }
-.core-list li strong { display: block; }
+.core-list li > strong { display: block; }
 .core-rows { display: grid; gap: 10px; margin: 12px 0; }
 .core-row { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .core-row.off { background: var(--bg); }
@@ -263,7 +263,8 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
 .core-row input[type=text], .core-row textarea { width: 100%; }
 .ok-text { color: var(--green-ink); }
 .core-nudge { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-.core-list li span { display: block; }
+/* Direct children only: thai-wrap.js wraps every Thai phrase in its own <span>, which a descendant rule would turn into one line each. */
+.core-list li > span { display: block; }
 .pre { white-space: pre-line; }
 .mini-field { display: grid; gap: 2px; }
 .table-wrap td { white-space: pre-line; }
