@@ -17,7 +17,9 @@
         ? h('form.stack', { onsubmit: function (e) { e.preventDefault(); sendCode(e.submitter || form.querySelector('button')); } },
           h('label.field', { for: 'signin-email' }, 'อีเมลที่ใช้ทำงาน', email),
           msg,
-          h('button.btn.primary.wide', { type: 'submit', text: 'รับรหัสเข้าสู่ระบบ' }))
+          h('button.btn.primary.wide', { type: 'submit', text: 'รับรหัสเข้าสู่ระบบ' }),
+          h('p.muted.small', {}, 'เมื่อเข้าสู่ระบบ ถือว่าคุณรับทราบ ',
+            h('a', { href: '../privacy.html', target: '_blank', rel: 'noopener', text: 'นโยบายความเป็นส่วนตัว' })))
         : h('form.stack', { onsubmit: function (e) { e.preventDefault(); verify(e.submitter || form.querySelector('button.primary')); } },
           h('p', {}, 'ส่งรหัส 6 หลักไปที่ ', h('strong', { text: state.email }), ' แล้ว (ใช้ได้ 10 นาที)'),
           h('label.field', { for: 'signin-code' }, 'รหัสจากอีเมล', code),

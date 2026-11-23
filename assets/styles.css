@@ -649,6 +649,8 @@ html { scrollbar-gutter: stable; }
 .bank-line { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
 .bank-line strong { word-break: break-word; }
 @media (max-width: 560px) { .bank-line { grid-template-columns: 1fr auto; } .bank-line .muted { grid-column: 1 / -1; } }
+.seller-box { margin-top: 6px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 4px; background: var(--paper, #fff); }
+.seller-box .bank-line:last-child { border-bottom: 0; }
 .pay-status { display: inline-block; font-size: 13px; font-weight: 600; padding: 3px 10px; border-radius: 6px; background: var(--paper-2); color: var(--ink-2); white-space: nowrap; }
 .pay-status.wait { background: #FFF6E3; color: #6E4100; }
 .pay-status.review { background: var(--blue-soft); color: var(--blue); }

@@ -220,8 +220,14 @@
             h('span.eyebrow', { text: 'ขั้นที่ 2 · แนบหลักฐาน' }),
             h('label.field', { for: 'slip' }, 'สลิปการโอน (รูปหรือ PDF)' + (o.hasSlip ? ' · ส่งแล้ว เลือกใหม่ถ้าจะเปลี่ยน' : ''), slipIn),
             o.whtThb ? h('label.field', { for: 'cert' }, 'หนังสือรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ)' + (o.hasWhtCert ? ' · ส่งแล้ว' : ''), certIn) : null,
+            o.whtThb && cfg.seller ? h('div.seller-box', {},
+              h('p.small.muted', { text: 'ออกหนังสือ 50 ทวิ ในนามผู้ถูกหักภาษี' }),
+              field('ชื่อ', cfg.seller.name + ' (' + cfg.seller.branch + ')'),
+              field('เลขประจำตัวผู้เสียภาษี', cfg.seller.taxId, cfg.seller.taxId),
+              field('ที่อยู่', cfg.seller.address)) : null,
             msg, h('div.row.end', {}, cancel, send))) : null,
-        h('section.card', {}, h('h2', { text: 'ออกใบกำกับภาษีในนาม' }), o.billing ? billingSummary(o.billing) : h('p.muted', { text: '-' })),
+        h('section.card', {}, h('h2', { text: 'ออกใบกำกับภาษีในนาม' }), o.billing ? billingSummary(o.billing) : h('p.muted', { text: '-' }),
+          cfg.seller ? h('p.small.muted', { text: 'ผู้ขาย: ' + cfg.seller.name + ' (' + cfg.seller.branch + ') เลขประจำตัวผู้เสียภาษี ' + cfg.seller.taxId + ' · ' + cfg.seller.address }) : null),
         h('div.row', {}, h('a.btn', { href: '#credits', text: 'กลับไปหน้าเครดิต' }))
       ]);
     }, function (e) { ui.mount(view, ui.note('err', ui.errorText(e))); });

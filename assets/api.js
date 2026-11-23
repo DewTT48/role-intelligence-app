@@ -553,7 +553,8 @@
   function demoPayConfig() {
     var s = db.paySet || {};
     return { enabled: !!(s.enabled && s.bank && s.bank.accountNo), whtEnabled: !!s.whtEnabled, whtRate: 0.03, bank: s.enabled ? s.bank : null, promptpayId: s.promptpayId || '',
-      packs: (D.packs || []).map(function (p) { return demoQuote(p.id, false); }), billing: db.billing || null, vatRate: 0.07, pricesIncludeVat: true, orders: db.orders || [] };
+      packs: (D.packs || []).map(function (p) { return demoQuote(p.id, false); }), billing: db.billing || null, vatRate: 0.07, pricesIncludeVat: true, orders: db.orders || [],
+      seller: { name: 'บริษัท ภูมิใจ ดีใจ จำกัด', branch: 'สำนักงานใหญ่', taxId: '0575562000046', address: '103 ม.13 ต.ป่าอ้อดอนชัย อ.เมือง จ.เชียงราย 57000' } };
   }
 
   function demoDormant() {
