@@ -82,7 +82,7 @@
     return 5 - db.aiUse[kind];
   }
   function demoSet(kind) { return DEMO_SETS[kind].map(function (x) { return { competency: x[0], definition: x[1], behavioral_indicators: x[2], why_it_matters: x[3] }; }); }
-  var SET_TYPE = { core: 'Core', leadership: 'Managerial' };
+  var SET_TYPE = { core: 'Core', leadership: 'Leadership' };
   function coreNames(items) { return (items || []).map(function (c) { return c.competency; }).sort().join('|'); }
   function competencyStatus(jd) {
     var comps = jd.sections.required_competencies;
@@ -91,14 +91,14 @@
     if (!comps) return out;
     var of = function (t) { return comps.filter(function (c) { return c.type === t; }); };
     if (core.length && coreNames(of('Core')) !== coreNames(core)) out.core = 'outdated';
-    if (of('Managerial').length) out.leadership = !lead.length ? 'none' : coreNames(of('Managerial')) === coreNames(lead) ? 'current' : 'outdated';
+    if (of('Leadership').length) out.leadership = !lead.length ? 'none' : coreNames(of('Leadership')) === coreNames(lead) ? 'current' : 'outdated';
     return out;
   }
   function withCompanySets(comps) {
     var core = db.org.core || [], lead = db.org.leadership || [];
-    var hasMan = comps.some(function (c) { return c.type === 'Managerial'; });
-    var keep = comps.filter(function (c) { return c.type === 'Core' ? !core.length : c.type === 'Managerial' ? !(lead.length && hasMan) : true; });
-    return core.concat(lead.length && hasMan ? lead : []).concat(keep).sort(function (a, b) { var o = { Core: 1, Managerial: 2, Functional: 3 }; return o[a.type] - o[b.type]; });
+    var hasMan = comps.some(function (c) { return c.type === 'Leadership'; });
+    var keep = comps.filter(function (c) { return c.type === 'Core' ? !core.length : c.type === 'Leadership' ? !(lead.length && hasMan) : true; });
+    return core.concat(lead.length && hasMan ? lead : []).concat(keep).sort(function (a, b) { var o = { Core: 1, Leadership: 2, Functional: 3 }; return o[a.type] - o[b.type]; });
   }
   function onboarding() {
     db.prefs = db.prefs || { welcomeSeen: false, checklistHidden: false, tips: [] };
@@ -155,7 +155,7 @@
     order.forEach(function (k) { sections[k] = D.sections[k]; });
     if (sections.required_competencies) {
       var comps = sections.required_competencies;
-      if (a.people_management_type !== 'DIRECT_REPORTS') comps = comps.filter(function (c) { return c.type !== 'Managerial'; });
+      if (a.people_management_type !== 'DIRECT_REPORTS') comps = comps.filter(function (c) { return c.type !== 'Leadership'; });
       sections.required_competencies = withCompanySets(comps);
     }
     return { tier: tier, title: a.position_title || '', department: a.department || '', reports_to: a.reports_to || '', sections: sections, order: order, omitted: omitted, meta: { provider: 'demo', model: 'demo' } };

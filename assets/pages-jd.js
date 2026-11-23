@@ -189,7 +189,7 @@
             var td = h('td', { 'data-label': c[1] });
             if (key === 'required_competencies' && c[0] === 'type') {
               td.appendChild(h('select', { 'aria-label': c[1], onchange: function (e) { row.type = e.target.value; mark(td, row.type, o.type); draw(); changed(); } },
-                ['Core', 'Managerial', 'Functional'].map(function (t) { return h('option', { value: t, text: t, selected: row.type === t }); })));
+                ['Core', 'Leadership', 'Functional'].map(function (t) { return h('option', { value: t, text: t, selected: row.type === t }); })));
             } else if (BULLET_FIELDS.indexOf(c[0]) >= 0) {
               td.appendChild(bulletEditor(row[c[0]], c[1], function (x) { row[c[0]] = x; mark(td, x, o[c[0]]); changed(); }));
             } else {

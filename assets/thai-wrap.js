@@ -17,12 +17,20 @@
   var MAX = 18; // a phrase longer than this may still break, so narrow columns never overflow
   var SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, INPUT: 1, SELECT: 1, OPTION: 1, CODE: 1 };
 
+  // English words and numbers inside Thai sentences ("AI", "HR", "JD", "Rev. 2", "300") belong with the Thai next to them:
+  // the space beside them is not a clause break. Words that start a new clause are where a line may still break.
+  var LATIN = /^[A-Za-z0-9][A-Za-z0-9.&'’\-+/]*$/;
+  var CLAUSE = ['หรือ', 'และ', 'แต่', 'แล้ว', 'ซึ่ง', 'เพื่อ', 'โดย', 'ถ้า', 'หาก', 'จึง', 'ก็', 'ส่วน', 'เช่น', 'ทั้งที่', 'พอ', 'จน'];
+  var MAX_GLUED = 34;
+
   function phrases(text) {
     var words = Array.from(seg.segment(text), function (s) { return s.segment; });
     var out = [];
     var glueNext = false;
+    var forceJoin = false;
     var prevWord = '';
-    words.forEach(function (w) {
+    function nextWord(i) { for (var j = i + 1; j < words.length; j++) if (words[j].trim()) return { w: words[j], i: j }; return null; }
+    words.forEach(function (w, i) {
       var last = out[out.length - 1];
       var isSpace = !w.trim();
       var thai = THAI.test(w);
@@ -33,17 +41,35 @@
         glueNext = false;
         return;
       }
-      var lastThai = last !== undefined && THAI.test(last.slice(-1));
-      var join = last !== undefined && !isSpace && !/\s$/.test(last) &&
+      if (isSpace && w === ' ' && last !== undefined) {
+        var n = nextWord(i);
+        var lastLatin = !THAI.test(last.slice(-1)) && /[A-Za-z0-9.)%]$/.test(last);
+        var lastThai = THAI.test(last.slice(-1));
+        var keep = false;
+        if (n) {
+          var nLatin = LATIN.test(n.w), nThai = THAI.test(n.w);
+          if (lastLatin && nThai && CLAUSE.indexOf(n.w) < 0) keep = true;            // "AI เสนอ", "JD ร่างแรก", "300 ตำแหน่ง"
+          else if (lastLatin && nLatin && /^[A-Za-z]/.test(n.w) && n.w.length <= 14) keep = true;   // "Role Brief", "HR Business Partner"
+          else if (lastThai && nLatin) {
+            var after = nextWord(n.i + (words[n.i + 1] === '.' ? 1 : 0));
+            if (GLUE_NEXT.indexOf(prevWord) >= 0) keep = true;                        // "เป็น Rev.", "ของ HR"
+            else if (!after || CLAUSE.indexOf(after.w) >= 0 || /^[,.;:!?)]/.test(after.w)) keep = true; // "รอบตรวจ ISO หรือ…", "… ได้ JD"
+          }
+        }
+        if (keep && (last + ' ').length < MAX_GLUED) { out[out.length - 1] = last + ' '; forceJoin = true; prevWord = w; return; }
+      }
+      var lastThaiCh = last !== undefined && THAI.test(last.slice(-1));
+      var join = last !== undefined && !isSpace && (forceJoin && (last + w).length <= MAX_GLUED || !/\s$/.test(last) &&
         (glueNext || /[(\[“‘"']$/.test(last) ||
           (thai && GLUE_PREV.indexOf(w) >= 0) ||
           // very short words ("โยง", "ทาง", "คน") are usually the tail of a compound the segmenter split
-          (thai && lastThai && w.length <= 3 && GLUE_NEXT.indexOf(w) < 0 && last.length <= 12) ||
+          (thai && lastThaiCh && w.length <= 3 && GLUE_NEXT.indexOf(w) < 0 && last.length <= 12) ||
           // two short words in a row are usually one compound the segmenter split ("คาด|หวัง", "เชื่อม|โยง")
-          (thai && lastThai && THAI.test(prevWord) && prevWord.length <= 3 && w.length <= 4 && GLUE_NEXT.indexOf(w) < 0) ||
+          (thai && lastThaiCh && THAI.test(prevWord) && prevWord.length <= 3 && w.length <= 4 && GLUE_NEXT.indexOf(w) < 0) ||
           (!thai && /^[)\]"'”’.,:;!?…%]/.test(w))) &&
-        (last + w).length <= MAX;
+        (last + w).length <= MAX);
       if (join) out[out.length - 1] = last + w; else out.push(w);
+      forceJoin = false;
       glueNext = thai && GLUE_NEXT.indexOf(w) >= 0;
       prevWord = w;
     });
