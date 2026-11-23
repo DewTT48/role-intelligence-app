@@ -83,6 +83,8 @@
   }
 
   document.getElementById('logout').addEventListener('click', function () {
+    // Admin data kept for quick display belongs to this sign-in only.
+    try { Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf('ri.admin.') === 0) sessionStorage.removeItem(k); }); } catch (e) { /* ignore */ }
     api.call('auth.logout').catch(function () {}).then(function () {
       api.setToken('');
       app.me = null;

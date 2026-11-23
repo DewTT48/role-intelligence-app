@@ -182,6 +182,26 @@
   function loading(el) { ui.mount(el, h('p.muted', { text: 'กำลังโหลด…' })); }
   function failed(el, e) { ui.mount(el, ui.note('err', ui.errorText(e))); }
 
+  /**
+   * Shows the data loaded last time at once (kept for this browser tab only), then the fresh data when it arrives.
+   * Each admin call takes a few seconds on Apps Script; this way the page is never blank after the first visit.
+   * fresh = true skips the old copy (right after a change, so a stale list never flashes).
+   */
+  function swr(action, payload, el, render, fresh) {
+    var key = 'ri.admin.' + action + JSON.stringify(payload || {});
+    var old = null;
+    if (!fresh) { try { old = JSON.parse(sessionStorage.getItem(key) || 'null'); } catch (e) { old = null; } }
+    if (old) { render(old); el.classList.add('refreshing'); el.setAttribute('aria-busy', 'true'); } else loading(el);
+    return api.call(action, payload).then(function (d) {
+      try { sessionStorage.setItem(key, JSON.stringify(d)); } catch (e) { /* storage full or off: fine */ }
+      el.classList.remove('refreshing'); el.removeAttribute('aria-busy');
+      render(d);
+    }, function (e) {
+      el.classList.remove('refreshing'); el.removeAttribute('aria-busy');
+      if (old) ui.toast('อัปเดตข้อมูลล่าสุดไม่สำเร็จ: ' + ui.errorText(e), 'err'); else failed(el, e);
+    });
+  }
+
   window.pages.admin = function (view, arg) {
     if (!app.me || app.me.user.role !== 'admin') { ui.mount(view, ui.note('err', 'หน้านี้สำหรับผู้ดูแลระบบเท่านั้น')); return; }
     var tab = TABS.some(function (t) { return t[0] === arg; }) ? arg : 'overview';
@@ -200,8 +220,7 @@
   function overviewTab(el) {
     var out = h('div.stack');
     ui.mount(el, [h('div.row-between', {}, h('p.muted', { text: 'ตัวเลขคำนวณจากข้อมูลจริงทุกครั้งที่เปิด' }), periodPicker(function () { overviewTab(el); })), out]);
-    loading(out);
-    api.call('admin.overview', { days: period }).then(function (o) {
+    swr('admin.overview', { days: period }, out, function (o) {
       var max = Math.max(1, o.funnel[0].count);
       ui.mount(out, [
         o.unpricedModels.length ? ui.note('warn', 'ยังไม่มีราคาของโมเดล ' + o.unpricedModels.join(', ') + ' ค่า AI จึงยังไม่รวมโมเดลนี้ ใส่ราคาได้ที่แท็บค่า AI') : null,
@@ -227,15 +246,14 @@
               h('span.funnel-num', { text: num(f.count) + (i ? ' · ' + pct + '%' : '') }));
           })))
       ]);
-    }, function (e) { failed(out, e); });
+    });
   }
 
   // ---------------- ค่า AI ----------------
   function costTab(el) {
     var out = h('div.stack');
     ui.mount(el, [h('div.row-between', {}, h('p.muted', { text: 'คิดจากจำนวน token ที่บันทึกทุกครั้งที่เรียก AI × ราคาโมเดลด้านล่าง' }), periodPicker(function () { costTab(el); })), out]);
-    loading(out);
-    api.call('admin.aiCost', { days: period }).then(function (r) { renderCost(out, r, el); }, function (e) { failed(out, e); });
+    swr('admin.aiCost', { days: period }, out, function (r) { renderCost(out, r, el); });
   }
 
   function renderCost(out, r, el) {
@@ -339,12 +357,11 @@
     q.addEventListener('input', search);
     ui.mount(el, [h('div.row', {}, q), list]);
     function load() {
-      loading(list);
-      api.call('admin.orgs', { q: q.value }).then(function (r) {
+      swr('admin.orgs', { q: q.value }, list, function (r) {
         ui.mount(list, [
           h('p.muted', { text: 'พบ ' + num(r.total) + ' บริษัท' + (r.total > r.rows.length ? ' แสดง ' + r.rows.length + ' รายการล่าสุด' : '') + ' · ไม่แสดงเนื้อหา JD ของลูกค้า' }),
           table(['บริษัท', 'ผู้ใช้', 'เครดิต', 'ตำแหน่ง / JD', 'ใช้ล่าสุด', ''], r.rows.map(row), 'customers')]);
-      }, function (e) { failed(list, e); });
+      }, !!q.value);
     }
     function row(o) {
       var users = h('div.stack-tight', {}, o.users.map(function (u) {
@@ -595,9 +612,8 @@
         msg, h('div.row.end', {}, save)));
     }
 
-    function loadList() {
-      loading(listBox);
-      api.call('admin.payments').then(function (r) {
+    function loadList(fresh) {
+      swr('admin.payments', {}, listBox, function (r) {
         var rows = r.rows.map(function (o) {
           var b = o.billing || {};
           return h('tr', {},
@@ -618,7 +634,7 @@
           h('section.card', {}, h('h2', { text: 'คำสั่งซื้อ' }),
             table(['เลขอ้างอิง', 'ผู้ซื้อ / ออกใบกำกับในนาม', 'แพ็ก', 'ยอดโอน', 'สถานะ', ''], rows, 'customers'),
             h('p.small.muted', { text: 'ตรวจยอดในบัญชีธนาคารให้ตรงก่อนกดยืนยัน เครดิตเข้าทันทีและยกเลิกเองไม่ได้ (ปรับคืนได้ที่แท็บลูกค้าและเครดิต)' }))]);
-      }, function (e) { failed(listBox, e); });
+      }, fresh);
     }
 
     function showFile(o, which) {
@@ -631,14 +647,14 @@
     function confirmPay(o) {
       ui.confirmBox('ยืนยันรับเงิน ' + o.ref + '?', 'ตรวจแล้วว่าได้รับ ' + baht(o.amountDue) + ' เข้าบัญชีบริษัท ระบบจะเพิ่ม ' + (o.credits + o.bonusCredits) + ' เครดิตให้ ' + o.email + ' และส่งอีเมลแจ้ง', 'ยืนยันรับเงิน').then(function (yes) {
         if (!yes) return;
-        api.call('admin.payment.confirm', { id: o.id }).then(function () { ui.toast('เพิ่มเครดิตแล้ว'); loadList(); }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+        api.call('admin.payment.confirm', { id: o.id }).then(function () { ui.toast('เพิ่มเครดิตแล้ว'); loadList(true); }, function (e) { ui.toast(ui.errorText(e), 'err'); });
       });
     }
     function rejectPay(o) {
       var reason = h('input', { type: 'text', id: 'rej-reason', maxlength: '300', placeholder: 'เช่น ยอดโอนไม่ตรง, สลิปไม่ชัด' });
       ui.confirmBox('ตรวจไม่ผ่าน ' + o.ref, h('label.field', { for: 'rej-reason' }, 'เหตุผล (ลูกค้าเห็นในอีเมล)', reason), 'บันทึก').then(function (yes) {
         if (!yes) return;
-        api.call('admin.payment.reject', { id: o.id, reason: reason.value }).then(function () { ui.toast('บันทึกแล้ว'); loadList(); }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+        api.call('admin.payment.reject', { id: o.id, reason: reason.value }).then(function () { ui.toast('บันทึกแล้ว'); loadList(true); }, function (e) { ui.toast(ui.errorText(e), 'err'); });
       });
     }
   }

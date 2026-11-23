@@ -687,3 +687,6 @@ html.poster .lang-opt.on { background: var(--indigo); border-color: var(--indigo
 .email-box .row input { flex: 1 1 auto; min-width: 0; }
 .email-msg { color: var(--red, #B42318); min-height: 1em; }
 .email-box .row { flex-wrap: nowrap; }
+/* admin: old data shown while the fresh copy loads */
+.refreshing { opacity: .55; transition: opacity .2s; }
+.refreshing::before { content: 'กำลังอัปเดตข้อมูลล่าสุด…'; display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
