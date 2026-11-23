@@ -155,7 +155,7 @@
   var ACTION_LABEL = { signup_bonus: 'เครดิตฟรีเมื่อสมัคร', company_profile_bonus: 'โบนัสข้อมูลบริษัท', core_competency_bonus: 'โบนัส Core Competency',
     leadership_competency_bonus: 'โบนัส Leadership Competency', admin_grant: 'ผู้ดูแลเพิ่มให้', admin_deduct: 'ผู้ดูแลหักออก', purchase: 'ซื้อเครดิต',
     refund: 'คืนเครดิต', jd_silver: 'สร้าง Role Profile', jd_gold: 'สร้าง Role Blueprint', jd_bronze: 'สร้าง Role Brief', jd_duplicate: 'ทำซ้ำทั้งฉบับ',
-    ai_edit_item: 'AI แก้ทีละข้อ', ai_edit_section: 'AI แก้ทั้งหมวด' };
+    ai_edit_item: 'AI แก้ทีละข้อ', ai_edit_section: 'AI แก้ทั้งหมวด', jd_translate: 'เปลี่ยนภาษา JD', expire: 'เครดิตหมดอายุ', account_deleted: 'ลบบัญชี (ยกเลิกเครดิตที่เหลือ)' };
   var period = 30;
 
   function baht(n) {
@@ -234,7 +234,9 @@
           stat('รายได้', baht(o.revenue), o.revenue ? 'จากการซื้อเครดิตที่ชำระแล้ว' : 'ยังไม่มีระบบชำระเงิน', 'green'),
           stat('ค่า AI', baht(o.aiCost), 'ค่าที่จ่ายให้ผู้ให้บริการ AI', 'pink'),
           stat('กำไรขั้นต้น', baht(o.margin), 'รายได้ − ค่า AI (ยังไม่รวมค่าอื่น)'),
-          stat('เครดิตที่ลูกค้าถืออยู่', ui.fmtCredits(o.credits.outstanding), 'แจกฟรี ' + ui.fmtCredits(o.credits.given) + ' · ขาย ' + ui.fmtCredits(o.credits.bought) + ' · ใช้ไป ' + ui.fmtCredits(o.credits.used))),
+          stat('เครดิตที่ลูกค้าถืออยู่', ui.fmtCredits(o.credits.outstanding), 'แจกฟรี ' + ui.fmtCredits(o.credits.given) + ' · ขาย ' + ui.fmtCredits(o.credits.bought) + ' · ใช้ไป ' + ui.fmtCredits(o.credits.used) +
+            (o.credits.expired ? ' · หมดอายุ ' + ui.fmtCredits(o.credits.expired) : '') + (o.credits.cancelled ? ' · ยกเลิกจากการลบบัญชี ' + ui.fmtCredits(o.credits.cancelled) : ''))),
+        maintenanceNote(o.maintenance),
         h('section.card', {},
           h('h2', { text: 'ลูกค้าใหม่ไปถึงขั้นไหน' }),
           h('p.muted', { text: 'นับเฉพาะคนที่สมัครในช่วงเวลาที่เลือก ช่วยให้เห็นว่าคนหลุดตรงไหน' }),
@@ -247,6 +249,17 @@
           })))
       ]);
     });
+  }
+
+  /** One line on the automatic clean-up (Maintenance.js): when it last ran and what it removed. */
+  function maintenanceNote(m) {
+    if (!m || !m.cleanedAt) return null;
+    var c = m.cleaned || {};
+    var r = m.retention || {};
+    var removed = (c.sessions || 0) + (c.login_codes || 0) + (c.ai_calls || 0) + (c.audit_log || 0);
+    return h('p.small.muted', { text: 'ล้างข้อมูลเก่าอัตโนมัติเดือนละครั้ง ล่าสุด ' + when(m.cleanedAt) + ' ลบ ' + num(removed) + ' แถว' +
+      ' (บันทึกการเรียก AI เก็บ ' + num(r.AI_CALLS_DAYS) + ' วัน · บันทึกการใช้งาน ' + num(r.AUDIT_LOG_DAYS) + ' วัน · รหัสเข้าสู่ระบบและ session ที่หมดอายุ)' +
+      (m.expired && m.expired.credits ? ' · วันนี้เครดิตหมดอายุ ' + ui.fmtCredits(m.expired.credits) + ' เครดิต จาก ' + num(m.expired.orgs) + ' บริษัท' : '') });
   }
 
   // ---------------- ค่า AI ----------------
@@ -373,7 +386,9 @@
           u.deleteRequestedAt ? h('span.pill.del-pill', { text: 'ขอลบบัญชี ' + new Date(u.deleteRequestedAt).toLocaleDateString('th-TH'), title: u.deleteReason || '' }) : null,
           u.role === 'admin' ? h('span.pill', { text: 'admin' }) : null,
           off ? h('span.pill.gray', { text: 'ถูกระงับ' }) : null,
-          u.role === 'admin' ? null : ui.button('small-btn' + (off ? '' : '.danger'), off ? 'เปิดใช้บัญชี' : 'ระงับบัญชี', function () { toggleUser(u, off); }, { icon: off ? 'check' : 'lock' }));
+          u.role === 'admin' ? null : h('div.row-tight', {},
+            ui.button('small-btn' + (off ? '' : '.danger'), off ? 'เปิดใช้บัญชี' : 'ระงับบัญชี', function () { toggleUser(u, off); }, { icon: off ? 'check' : 'lock' }),
+            ui.button('small-btn.danger', 'ลบบัญชี', function () { removeUser(u); }, { icon: 'trash' })));
       }));
       return h('tr', {},
         h('td', {}, h('strong', { text: o.name || '(ยังไม่ตั้งชื่อ)' }), o.business_type ? h('div.small.muted', { text: o.business_type }) : null),
@@ -427,6 +442,39 @@
           api.call('admin.sample.set', { positionId: chosen.id }).then(function () {
             ui.toast('ตั้งเป็นตัวอย่างแล้ว ผู้ใช้ทุกคนเห็นได้ที่ "ดูตัวอย่าง JD"');
             app.me.hasSample = true;
+          }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+        });
+      }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+    }
+    /** Two steps: the server lists what goes and what stays, then the admin types the e-mail to confirm. */
+    function removeUser(u) {
+      api.call('admin.user.deletePreview', { userId: u.id }).then(function (pv) {
+        var typed = h('input', { type: 'email', id: 'del-confirm', autocomplete: 'off', placeholder: pv.email });
+        var li = function (t) { return h('li', { text: t }); };
+        var gone = pv.wholeOrg ? [
+          'บัญชีผู้ใช้ ' + pv.email + ' และการเข้าสู่ระบบทั้งหมด',
+          'ข้อมูลบริษัท' + (pv.orgName ? ' "' + pv.orgName + '"' : '') + (pv.competencies ? ' และ Competency ของบริษัท' : ''),
+          'ตำแหน่ง ' + num(pv.positions) + ' ตำแหน่ง พร้อมคำตอบ และ JD ทุกฉบับ (' + num(pv.versions) + ' Rev.)',
+          pv.docs ? 'ไฟล์ JD ใน Google Drive ' + num(pv.docs) + ' ไฟล์ (ย้ายไปถังขยะ Google ลบถาวรใน 30 วัน)' : null,
+          pv.ordersRemoved ? 'คำสั่งซื้อที่ยังไม่ได้ชำระ/ยกเลิก ' + num(pv.ordersRemoved) + ' รายการ พร้อมสลิป' : null,
+          pv.balance > 0 ? 'เครดิตที่เหลือ ' + ui.fmtCredits(pv.balance) + ' เครดิต ถูกยกเลิก (ไม่คืนเงิน)' : null
+        ] : ['บัญชีผู้ใช้ ' + pv.email + ' และการเข้าสู่ระบบทั้งหมด (บริษัทนี้ยังมีผู้ใช้อื่น ' + num(pv.otherUsers) + ' คน ข้อมูลบริษัทและ JD จึงยังอยู่)'];
+        var kept = ['ประวัติเครดิต (ไม่มีข้อมูลส่วนตัว) และตัวเลขค่า AI',
+          pv.paidKept ? 'คำสั่งซื้อที่ชำระแล้ว ' + num(pv.paidKept) + ' รายการ พร้อมข้อมูลใบกำกับภาษีและสลิป (กฎหมายบัญชีและภาษี 5 ปี)' : null,
+          'บันทึกการใช้งาน โดยเอาอีเมลออก'];
+        var body = h('div.stack', {},
+          pv.deleteRequestedAt ? ui.note('info', 'ผู้ใช้ขอลบเมื่อ ' + when(pv.deleteRequestedAt) + (pv.deleteReason ? ' · เหตุผล: ' + pv.deleteReason : '') + ' · นโยบายสัญญาว่าลบภายใน 30 วัน')
+            : ui.note('warn', 'ผู้ใช้ยังไม่ได้ส่งคำขอลบบัญชีจากในแอป ตรวจให้แน่ใจว่าเจ้าของบัญชีขอจริง'),
+          h('strong', { text: 'สิ่งที่จะถูกลบ (กู้คืนจากในแอปไม่ได้)' }), h('ul', {}, gone.filter(Boolean).map(li)),
+          h('strong', { text: 'สิ่งที่เก็บไว้' }), h('ul', {}, kept.filter(Boolean).map(li)),
+          h('p.small.muted', { text: 'ระบบส่งอีเมลแจ้งผู้ใช้ว่าลบแล้ว' }),
+          h('label.field', { for: 'del-confirm' }, 'พิมพ์อีเมล ' + pv.email + ' เพื่อยืนยัน', typed));
+        ui.confirmBox('ลบบัญชีถาวร?', body, 'ลบบัญชีถาวร').then(function (yes) {
+          if (!yes) return;
+          if (typed.value.trim().toLowerCase() !== String(pv.email).toLowerCase()) { ui.toast('อีเมลที่พิมพ์ไม่ตรง ยังไม่ได้ลบ', 'err'); return; }
+          api.call('admin.user.delete', { userId: u.id, confirmEmail: typed.value }).then(function (r) {
+            ui.toast('ลบบัญชีแล้ว' + (r.filesFailed ? ' (ย้ายไฟล์ลงถังขยะไม่ได้ ' + r.filesFailed + ' ไฟล์ อาจถูกลบไปก่อนแล้ว)' : '') + (r.mailed === false ? ' · ส่งอีเมลแจ้งผู้ใช้ไม่สำเร็จ' : ''));
+            load();
           }, function (e) { ui.toast(ui.errorText(e), 'err'); });
         });
       }, function (e) { ui.toast(ui.errorText(e), 'err'); });

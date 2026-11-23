@@ -287,7 +287,7 @@
   // ---------------- credits ----------------
   var ACTION_LABEL = {
     signup_bonus: 'เครดิตฟรีเมื่อสมัคร', company_profile_bonus: 'โบนัสข้อมูลบริษัท', core_competency_bonus: 'โบนัส Core Competency', jd_translate: 'เปลี่ยนภาษา JD', jd_duplicate: 'คัดลอก JD ทั้งฉบับ', ai_edit_item: 'AI แก้ทีละข้อ', ai_edit_section: 'AI แก้ทั้งหมวด', leadership_competency_bonus: 'โบนัส Leadership Competency', admin_grant: 'เครดิตจากผู้ดูแลระบบ', admin_deduct: 'ผู้ดูแลปรับลด', purchase: 'ซื้อเครดิต', jd_silver: 'สร้าง Role Profile',
-    jd_gold: 'สร้าง Role Blueprint', refund: 'คืนเครดิต', topup: 'เติมเครดิต', launch_bonus: 'โบนัสเปิดตัว', test: 'ปรับเครดิต'
+    jd_gold: 'สร้าง Role Blueprint', refund: 'คืนเครดิต', topup: 'เติมเครดิต', launch_bonus: 'โบนัสเปิดตัว', test: 'ปรับเครดิต', expire: 'เครดิตหมดอายุ'
   };
 
   window.pages.credits = function (view) {
@@ -321,6 +321,8 @@
     ui.mount(view, [
       ui.pageHead('ซื้อเมื่อหมด ไม่มีรายเดือน · เครดิตอายุ ' + pr.validMonths + ' เดือน', 'เครดิต',
         h('div.balance', {}, h('span', { text: 'คงเหลือ' }), h('strong', { text: ui.fmtCredits(c.balance) }), h('span', { text: 'เครดิต' }))),
+      c.expiring ? ui.note('warn', ui.fmtCredits(c.expiring.credits) + ' เครดิตจะหมดอายุวันที่ ' +
+        new Date(c.expiring.date).toLocaleDateString('th-TH', { dateStyle: 'long' }) + ' ใช้ก่อนวันนั้นได้เลย ระบบหักเครดิตที่ใกล้หมดอายุก่อนเสมอ') : null,
       launchBox,
       h('div.packs', {}, c.packs.map(function (p) {
         return h('div.card.pack' + (p.recommended ? '.rec' : ''), {},

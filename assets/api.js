@@ -495,7 +495,7 @@
         users: [{ id: 'usr_demo', email: (db.user || {}).email || 'demo@example.com', role: 'admin', status: 'active' }], balance: balance(),
         positions: db.positions.length, jds: db.positions.filter(function (x) { return db.versions.some(function (v) { return v.positionId === x.id; }); }).length, last_login_at: now() }]
         .concat((db.demoOrgs = db.demoOrgs || [
-          { id: 'org_a', name: 'ร้านตัวอย่าง ก', business_type: 'ค้าปลีกเครื่องสำอาง', created_at: '2026-11-20T03:00:00Z', users: [{ id: 'u_a', email: 'hr@shop-a.example', role: 'owner', status: 'active' }], balance: 5, positions: 3, jds: 2, last_login_at: '2026-11-22T02:10:00Z' },
+          { id: 'org_a', name: 'ร้านตัวอย่าง ก', business_type: 'ค้าปลีกเครื่องสำอาง', created_at: '2026-11-20T03:00:00Z', users: [{ id: 'u_a', email: 'hr@shop-a.example', role: 'owner', status: 'active', deleteRequestedAt: '2026-11-22T05:00:00Z', deleteReason: 'ปิดกิจการ' }], balance: 5, positions: 3, jds: 2, last_login_at: '2026-11-22T02:10:00Z' },
           { id: 'org_b', name: '', business_type: '', created_at: '2026-11-21T09:00:00Z', users: [{ id: 'u_b', email: 'owner@shop-b.example', role: 'owner', status: 'active' }], balance: 3, positions: 0, jds: 0, last_login_at: '2026-11-21T09:00:00Z' }]));
       rows = rows.filter(function (r) { return !q || r.name.toLowerCase().indexOf(q) >= 0 || r.users.some(function (u) { return u.email.indexOf(q) >= 0; }); });
       return { total: rows.length, rows: rows };
@@ -542,6 +542,23 @@
     'admin.sample.clear': function () { db.sample = null; return null; },
     'sample.get': function () { return db.sample ? { title: db.sample.title, department: db.sample.department, reports_to: db.sample.reports_to, tier: db.sample.tier, order: db.sample.order, sections: db.sample.sections } : null; },
     'user.unsubscribe': function (p) { if (String(p.token || '').length < 20) throw fail('BAD_LINK', 'ลิงก์ไม่ถูกต้อง'); return { unsubscribed: true }; },
+    'admin.user.deletePreview': function (p) {
+      var u = null, org = null;
+      (db.demoOrgs || []).forEach(function (o) { o.users.forEach(function (x) { if (x.id === p.userId) { u = x; org = o; } }); });
+      if (!u) throw fail('NOT_FOUND', 'ไม่พบผู้ใช้นี้ (อาจถูกลบไปแล้ว)');
+      return { userId: u.id, email: u.email, orgName: org.name, wholeOrg: org.users.length === 1, otherUsers: org.users.length - 1,
+        positions: org.positions || 0, versions: org.jds || 0, docs: Math.min(org.jds || 0, 2), competencies: 2, ordersRemoved: 0, paidKept: 0,
+        balance: org.balance || 0, deleteRequestedAt: u.deleteRequestedAt || '', deleteReason: u.deleteReason || '' };
+    },
+    'admin.user.delete': function (p) {
+      var found = null;
+      (db.demoOrgs || []).forEach(function (o) { o.users.forEach(function (x) { if (x.id === p.userId) found = { o: o, u: x }; }); });
+      if (!found) throw fail('NOT_FOUND', 'ไม่พบผู้ใช้นี้ (อาจถูกลบไปแล้ว)');
+      if (String(p.confirmEmail || '').trim().toLowerCase() !== found.u.email) throw fail('BAD_VALUE', 'อีเมลที่พิมพ์ยืนยันไม่ตรงกับบัญชีนี้');
+      found.o.users = found.o.users.filter(function (x) { return x !== found.u; });
+      if (!found.o.users.length) db.demoOrgs = db.demoOrgs.filter(function (o) { return o !== found.o; });
+      return { deleted: true, userId: p.userId, wholeOrg: !found.o.users.length, files: 0, filesFailed: 0, mailed: true, paidKept: 0, creditsClosed: 0 };
+    },
     'admin.user.status': function (p) {
       var u = null;
       (db.demoOrgs || []).forEach(function (o) { o.users.forEach(function (x) { if (x.id === p.userId) u = x; }); });
