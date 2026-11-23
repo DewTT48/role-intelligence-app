@@ -240,7 +240,7 @@ p, li { text-wrap: pretty; }
 .final img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .32; filter: grayscale(.3); }
 .final-in { position: relative; display: flex; justify-content: space-between; align-items: flex-end; gap: 40px; flex-wrap: wrap; padding: 120px 0; }
 .final h2 { font-size: clamp(36px, 5vw, 66px); font-weight: 700; line-height: 1.1; display: flex; flex-direction: column; }
-.final h2 span:nth-child(2) { color: var(--hot); }
+.final h2 > span:nth-child(2) { color: var(--hot); }
 .dot { display: inline-block; width: .14em; height: .14em; background: var(--hot); margin-left: .05em; }
 .final-cta { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .final-cta p { color: #D7D8D4; font-size: 15px; }
@@ -409,3 +409,7 @@ body { line-height: 1.8; }
 }
 @media (max-width: 560px) { .hero-photo img { height: 320px; object-position: center 15%; } }
 .hero-photo picture { display: block; height: 100%; }
+/* copy v4 (2026-11-23): closing line + principle items with a bold lead */
+.final h2 .sub { font-size: .5em; line-height: 1.4; margin-top: 10px; }
+.principle li b { display: block; color: #fff; margin-bottom: 2px; }
+.doc-row i { white-space: nowrap; }

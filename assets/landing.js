@@ -89,7 +89,7 @@
       '</header>' +
       '<div class="jd-body">' + order.map(function (k) { return section(k, r.sections[k]); }).join('') + '</div>' +
       '<div class="jd-more"><button type="button" class="btn btn-ghost jd-toggle" aria-expanded="false">อ่านครบทั้ง ' + order.length + ' หมวด</button></div>' +
-      '<footer class="jd-foot"><span>Role Brief ได้หมวดพื้นฐาน · Role Profile เพิ่มตัวชี้วัด คุณสมบัติ สมรรถนะ · Role Blueprint ครบ 19 หมวด</span><a class="btn btn-pink" href="app/#signin">เขียนของตำแหน่งคุณ <span aria-hidden="true">→</span></a></footer>';
+      '<footer class="jd-foot"><span>Role Brief ได้หมวดพื้นฐาน · Role Profile เพิ่มตัวชี้วัด คุณสมบัติ สมรรถนะ · Role Blueprint ครบ 19 หมวด</span><a class="btn btn-pink" href="app/#signin">เริ่มสร้าง JD ฟรี <span aria-hidden="true">→</span></a></footer>';
     if (!calm) { panel.classList.remove('play'); void panel.offsetWidth; panel.classList.add('play'); }
     if (window.thaiWrap) window.thaiWrap.walk(panel);
   }
