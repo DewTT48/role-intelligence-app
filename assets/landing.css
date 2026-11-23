@@ -271,7 +271,7 @@ p, li { text-wrap: pretty; }
 
 /* ============ v3: corporate and factory HR ============ */
 /* hero: JD list card over the photo */
-.tracker { position: absolute; left: -40px; bottom: 40px; width: min(400px, 92%); background: #fff; border: 1px solid #080808; border-radius: var(--r); padding: 16px 18px; box-shadow: 8px 8px 0 var(--indigo); font-size: 14px; }
+.tracker { position: absolute; left: -40px; bottom: 14px; width: min(340px, 92%); background: #fff; border: 1px solid #080808; border-radius: var(--r); padding: 16px 18px; box-shadow: 8px 8px 0 var(--indigo); font-size: 14px; }
 .tr-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-bottom: 10px; border-bottom: 2px solid #080808; margin-bottom: 4px; }
 .tr-head span { font-weight: 700; font-size: 16px; }
 .tr-head b { font-size: 12px; color: var(--indigo); font-weight: 600; }
@@ -330,7 +330,7 @@ p, li { text-wrap: pretty; }
 .g-card.dark { grid-column: 1 / -1; display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.4fr); gap: 8px 28px; align-items: center; }
 @media (max-width: 900px) { .g-card.dark { grid-template-columns: 1fr; } }
 
-.hero-photo img { object-position: 38% center; }
+.hero-photo img { object-position: center 30%; }  /* source already cropped (rect=) to the two people talking */
 .pain-photo img { object-position: 30% center; }
 
 /* ============ Thai line spacing ============
@@ -395,3 +395,17 @@ body { line-height: 1.8; }
 .jd-body .tw-chunk { display: inline; }
 .jd-real { align-items: baseline; } .jd-real::before { flex: none; transform: translateY(-1px); }
 @media (max-width: 760px) { .jd-jump { display: none; } }
+/* Phones: the JD card sits under the photo (overlapping a little) instead of covering it. */
+@media (max-width: 560px) {
+  .hero-photo { height: auto; min-height: 0; }
+  .hero-photo img { height: 300px; border-bottom: 1px solid #080808; border-radius: var(--r); object-position: center 30%; }
+  .tracker { position: relative; left: auto; bottom: auto; width: auto; margin: -36px 10px 0; }
+}
+/* Tablets too: card under the photo; show the faces (top of the cropped photo). */
+@media (max-width: 960px) {
+  .hero-photo { height: auto; min-height: 0; }
+  .hero-photo img { height: 440px; border-bottom: 1px solid #080808; border-radius: var(--r); object-position: center; }
+  .tracker { position: relative; left: auto; bottom: auto; width: auto; max-width: 440px; margin: -36px 10px 0; }
+}
+@media (max-width: 560px) { .hero-photo img { height: 320px; object-position: center 15%; } }
+.hero-photo picture { display: block; height: 100%; }
