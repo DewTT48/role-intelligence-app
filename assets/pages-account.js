@@ -18,7 +18,8 @@
           h('label.field', { for: 'signin-email' }, 'อีเมลที่ใช้ทำงาน', email),
           msg,
           h('button.btn.primary.wide', { type: 'submit', text: 'รับรหัสเข้าสู่ระบบ' }),
-          h('p.muted.small', {}, 'เมื่อเข้าสู่ระบบ ถือว่าคุณรับทราบ ',
+          h('p.muted.small', {}, 'เมื่อเข้าสู่ระบบ ถือว่าคุณยอมรับ ',
+            h('a', { href: '../terms.html', target: '_blank', rel: 'noopener', text: 'ข้อตกลงการใช้งาน' }), ' และรับทราบ ',
             h('a', { href: '../privacy.html', target: '_blank', rel: 'noopener', text: 'นโยบายความเป็นส่วนตัว' })))
         : h('form.stack', { onsubmit: function (e) { e.preventDefault(); verify(e.submitter || form.querySelector('button.primary')); } },
           h('p', {}, 'ส่งรหัส 6 หลักไปที่ ', h('strong', { text: state.email }), ' แล้ว (ใช้ได้ 10 นาที)'),
@@ -294,9 +295,20 @@
     var pr = c.pricing || { pricesIncludeVat: true, validMonths: 12, launchBonusPct: 20, launchBonusCustomers: 30, freeBriefPerMonth: 10, freeRegenerations: 2 };
     var hist = h('div.stack', {}, h('p.muted', { text: 'กำลังโหลด…' }));
     var buyBtns = {};
+    // The launch bonus only applies to a company's first purchase while places are left: shown once pay.config says so.
+    var bonusSlots = {};
+    var launchBox = h('div');
     var payNote = h('div', {}, ui.note('info', 'กำลังโหลดช่องทางชำระเงิน…'));
     var ordersBox = h('div');
     api.call('pay.config').then(function (cfg) {
+      var bonusOf = {};
+      (cfg.packs || []).forEach(function (q) { bonusOf[q.packId] = Number(q.bonusCredits) || 0; });
+      Object.keys(bonusSlots).forEach(function (id) {
+        ui.mount(bonusSlots[id], bonusOf[id] ? h('span.bonus', { text: '+ แถม ' + bonusOf[id] + ' เครดิต ช่วงเปิดตัว' }) : null);
+      });
+      var anyBonus = Object.keys(bonusOf).some(function (id) { return bonusOf[id]; });
+      ui.mount(launchBox, anyBonus && pr.launchBonusPct ? h('div.launch', {}, h('strong', { text: 'โปรเปิดตัว แถมเครดิต +' + pr.launchBonusPct + '% สำหรับการซื้อครั้งแรก' }),
+        h('span', { text: 'สำหรับลูกค้า ' + pr.launchBonusCustomers + ' รายแรก เช่น ซื้อ Team 30 เครดิต ได้ ' + Math.round(30 * (1 + pr.launchBonusPct / 100)) + ' เครดิต' })) : null);
       Object.keys(buyBtns).forEach(function (id) {
         var on = cfg.enabled;
         ui.mount(buyBtns[id], on ? ui.button(buyBtns[id].dataset.rec ? 'primary' : '', 'ซื้อแพ็กนี้', function () { app.go('#buy/' + id); })
@@ -309,14 +321,12 @@
     ui.mount(view, [
       ui.pageHead('ซื้อเมื่อหมด ไม่มีรายเดือน · เครดิตอายุ ' + pr.validMonths + ' เดือน', 'เครดิต',
         h('div.balance', {}, h('span', { text: 'คงเหลือ' }), h('strong', { text: ui.fmtCredits(c.balance) }), h('span', { text: 'เครดิต' }))),
-      pr.launchBonusPct ? h('div.launch', {}, h('strong', { text: 'โปรเปิดตัว แถมเครดิต +' + pr.launchBonusPct + '%' }),
-        h('span', { text: 'สำหรับลูกค้า ' + pr.launchBonusCustomers + ' รายแรก เช่น ซื้อ Team 30 เครดิต ได้ ' + Math.round(30 * (1 + pr.launchBonusPct / 100)) + ' เครดิต' })) : null,
+      launchBox,
       h('div.packs', {}, c.packs.map(function (p) {
-        var bonus = Math.round(p.credits * pr.launchBonusPct / 100);
         return h('div.card.pack' + (p.recommended ? '.rec' : ''), {},
           h('div.row-between', {}, h('strong', { text: p.name || p.id }), p.recommended ? h('span.pill', { text: 'คุ้มที่สุดสำหรับทีม' }) : null),
           h('div.pack-num', { text: p.credits + ' เครดิต' }),
-          bonus ? h('span.bonus', { text: '+ แถม ' + bonus + ' เครดิต ช่วงเปิดตัว' }) : null,
+          (bonusSlots[p.id] = h('div.bonus-slot')),
           h('div.pack-price', { text: p.priceThb.toLocaleString('th-TH') + ' ฿' + (pr.pricesIncludeVat ? '' : ' + VAT') }),
           h('span.muted.small', { text: (pr.pricesIncludeVat ? 'รวม VAT แล้ว · ' : '') + '~' + Math.round(p.priceThb / p.credits) + ' ฿ ต่อเครดิต · Role Blueprint ' + Math.floor(p.credits / c.costs.gold) + ' ฉบับ' }),
           (buyBtns[p.id] = h('div.buy-slot', { 'data-rec': p.recommended ? '1' : '' }, h('button.btn', { type: 'button', disabled: true, text: 'กำลังโหลด…' }))));

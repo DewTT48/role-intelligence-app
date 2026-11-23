@@ -106,7 +106,7 @@
       (r[1].sections || []).forEach(function (x) { titleOf[x.key] = x.title; });
       ui.mount(box, [
         h('div.note.info', { role: 'status' },
-          h('span', { text: 'นี่คือ JD ที่ระบบสร้างจากคำตอบของผู้ใช้จริง ระดับ ' + ui.TIER[s.tier].label + ' (' + s.order.length + ' หมวด) ของคุณจะเขียนตามคำตอบของคุณเอง ชื่อบริษัทถูกนำออกแล้ว' }),
+          h('span', { text: 'นี่คือ JD ที่ระบบเขียนจริงจากคำตอบของหัวหน้างาน ไม่ได้แก้ข้อความ ระดับ ' + ui.TIER[s.tier].label + ' (' + s.order.length + ' หมวด) ของคุณจะเขียนตามคำตอบของคุณเอง ชื่อบริษัทไม่อยู่ในเอกสาร' }),
           h('div.row', {}, ui.button('primary.small-btn', 'เริ่มสร้าง JD ของฉัน', function () { app.go('#quest'); }))),
         h('article.card.jd-doc', {},
           h('div.preview-head', {}, h('span.eyebrow', { text: 'JOB DESCRIPTION · ' + ui.TIER[s.tier].label.toUpperCase() + ' · ตัวอย่าง' }), h('strong.preview-title', { text: s.title }),

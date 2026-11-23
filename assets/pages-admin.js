@@ -478,14 +478,16 @@
 
     var sample = h('section.card', {},
       h('h2', { text: 'JD ตัวอย่างที่ผู้ใช้เห็น' }),
+      d.sample && d.sample.builtIn ? h('p', {}, 'ตอนนี้ใช้ตัวอย่างมาตรฐานของระบบ: ', h('strong', { text: d.sample.title }), ' ', ui.tierPill(d.sample.tier),
+        ' (บริษัทสมมติ เปลี่ยนเป็น JD ของลูกค้าได้จากแท็บลูกค้าและเครดิต ปุ่ม "ใช้เป็น JD ตัวอย่าง")') :
       d.sample ? h('p', {}, 'ตอนนี้ใช้ ', h('strong', { text: (d.sample.from.code ? d.sample.from.code + ' · ' : '') + d.sample.title }), ' ', ui.tierPill(d.sample.tier),
         ' Rev. ' + d.sample.from.version + ' (ตั้งเมื่อ ' + when(d.sample.set_at) + ')') : h('p.muted', { text: 'ยังไม่ได้ตั้ง เลือกได้จากแท็บลูกค้าและเครดิต ปุ่ม "ใช้เป็น JD ตัวอย่าง"' }),
       h('p.small.muted', { text: 'ผู้ใช้เห็นปุ่ม "ดูตัวอย่าง JD" ในหน้าต้อนรับ หน้าสร้าง JD และหน้า JD ของฉันตอนที่ยังไม่มี JD' }),
       d.sample ? h('div.row', {}, h('a.btn.small-btn', { href: '#sample', target: '_blank', text: 'เปิดดูตัวอย่าง' }),
-        ui.button('ghost.small-btn.danger', 'เลิกใช้ตัวอย่างนี้', function () {
-          ui.confirmBox('เลิกใช้ JD ตัวอย่าง?', 'ผู้ใช้จะไม่เห็นปุ่มดูตัวอย่างจนกว่าจะตั้งใหม่', 'เลิกใช้').then(function (yes) {
+        d.sample.builtIn ? null : ui.button('ghost.small-btn.danger', 'กลับไปใช้ตัวอย่างมาตรฐาน', function () {
+          ui.confirmBox('กลับไปใช้ตัวอย่างมาตรฐาน?', 'ผู้ใช้จะเห็น JD ตัวอย่างมาตรฐานของระบบ (HR Manager) แทนตัวอย่างนี้', 'เปลี่ยนกลับ').then(function (yes) {
             if (!yes) return;
-            api.call('admin.sample.clear').then(function () { app.me.hasSample = false; followupTab(out.parentNode); }, function (e) { ui.toast(ui.errorText(e), 'err'); });
+            api.call('admin.sample.clear').then(function () { followupTab(out.parentNode); }, function (e) { ui.toast(ui.errorText(e), 'err'); });
           });
         })) : null);
 

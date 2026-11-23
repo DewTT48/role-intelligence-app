@@ -137,6 +137,8 @@
             billBox, whtRow),
           h('section.card', {}, h('h2', { text: 'สรุปยอด' }), total,
             h('p.small.muted', { text: 'กดสร้างคำสั่งซื้อแล้ว ระบบแสดงบัญชีที่ต้องโอน เครดิตเข้าหลังผู้ดูแลตรวจสลิป ใบกำกับภาษีส่งทางอีเมลแยกต่างหาก' }),
+            h('p.small.muted', {}, 'การซื้อเครดิตเป็นไปตาม ', h('a', { href: '../refund.html', target: '_blank', rel: 'noopener', text: 'นโยบายคืนเงินและเครดิต' }),
+              ' และ ', h('a', { href: '../terms.html', target: '_blank', rel: 'noopener', text: 'ข้อตกลงการใช้งาน' }), ' · เครดิตอายุ 12 เดือน'),
             msg, h('div.row.end', {}, ui.button('ghost', 'ย้อนกลับ', function () { app.go('#credits'); }), go)))
       ]);
       drawBilling();
