@@ -413,11 +413,11 @@ body { line-height: 1.8; }
 .final h2 .sub { font-size: .5em; line-height: 1.4; margin-top: 10px; }
 .principle li b { display: block; color: #fff; margin-bottom: 2px; }
 .doc-row i { white-space: nowrap; }
-/* hero fits one screen (2026-11-23): headline in 2 lines, tighter spacing */
-.hero-in { padding-top: 40px; }
-.hero-copy { padding-bottom: 48px; }
-.hero-title .quote { font-size: clamp(34px, 3.9vw, 58px); }
-.hero-title .a { font-size: clamp(24px, 2.3vw, 34px); margin-top: 8px; }
-.hero-lead { font-size: 18px; margin-top: 18px; }
-.hero-actions { margin-top: 24px; }
-.trust { margin-top: 18px; }
+/* hero fits one screen (2026-11-23): headline in 3 lines, checked down to 1280x720 */
+.hero-in { padding-top: 52px; }
+.hero-copy { padding-bottom: 64px; }
+.hero-title .quote { font-size: clamp(40px, 4.4vw, 70px); }
+.hero-title .a { font-size: clamp(26px, 2.6vw, 40px); margin-top: 12px; }
+.hero-lead { font-size: 19px; margin-top: 22px; }
+.hero-actions { margin-top: 28px; }
+.trust { margin-top: 22px; }
