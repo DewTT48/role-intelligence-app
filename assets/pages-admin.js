@@ -209,7 +209,8 @@
           stat('ผู้ใช้ทั้งหมด', num(o.users.total), 'ใหม่วันนี้ ' + num(o.users.today) + ' · 7 วัน ' + num(o.users.week) + ' · 30 วัน ' + num(o.users.month)),
           stat('เข้าใช้ใน 7 วัน', num(o.users.active), o.users.suspended ? 'ถูกระงับ ' + num(o.users.suspended) + ' บัญชี' : 'บริษัททั้งหมด ' + num(o.orgs)),
           stat('JD ที่สร้าง', num(o.jds.total), 'Brief ' + o.jds.byTier.bronze + ' · Profile ' + o.jds.byTier.silver + ' · Blueprint ' + o.jds.byTier.gold),
-          stat('ตำแหน่งที่เริ่มทำ', num(o.positions), 'รวมที่ยังไม่ได้สร้าง JD')),
+          stat('ตำแหน่งที่เริ่มทำ', num(o.positions), 'รวมที่ยังไม่ได้สร้าง JD'),
+          o.mailLeft === null || o.mailLeft === undefined ? null : stat('อีเมลที่ส่งได้อีกวันนี้', num(o.mailLeft), 'รหัสเข้าสู่ระบบ แจ้งชำระเงิน และอีเมลเตือน ใช้โควตาเดียวกัน เริ่มนับใหม่ทุกวัน', o.mailLeft < 100 ? 'pink' : '')),
         h('div.stats', {},
           stat('รายได้', baht(o.revenue), o.revenue ? 'จากการซื้อเครดิตที่ชำระแล้ว' : 'ยังไม่มีระบบชำระเงิน', 'green'),
           stat('ค่า AI', baht(o.aiCost), 'ค่าที่จ่ายให้ผู้ให้บริการ AI', 'pink'),
@@ -504,12 +505,45 @@
       sample]);
   }
 
+  /** A list of e-mails: one per row with a remove button, and a box to add one. → {el, value()} */
+  function emailList(id, initial, max, emptyText) {
+    var list = (initial || []).slice();
+    var rows = h('ul.email-list');
+    var input = h('input', { type: 'email', id: id, placeholder: 'name@company.com', autocomplete: 'off',
+      onkeydown: function (e) { if (e.key === 'Enter') { e.preventDefault(); add(); } } });
+    var msg = h('span.small.email-msg', { 'aria-live': 'polite' });
+    var addBtn = ui.button('small-btn', 'เพิ่ม', function () { add(); }, { icon: 'plus' });
+    function draw() {
+      ui.mount(rows, list.length ? list.map(function (e, i) {
+        return h('li', {}, h('span', { text: e }),
+          ui.button('ghost.icon-btn.danger', '', function () { list.splice(i, 1); draw(); }, { icon: 'trash', 'aria-label': 'ลบ ' + e, title: 'ลบ' }));
+      }) : h('li.muted.small', { text: emptyText }));
+      var full = list.length >= max;
+      input.disabled = full; addBtn.disabled = full;
+      input.placeholder = full ? 'ครบ ' + max + ' อีเมลแล้ว' : 'name@company.com';
+    }
+    function add() {
+      var v = input.value.trim().toLowerCase();
+      msg.textContent = '';
+      if (!v) return;
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) { msg.textContent = 'รูปแบบอีเมลไม่ถูกต้อง'; return; }
+      if (list.indexOf(v) >= 0) { msg.textContent = 'มีอีเมลนี้แล้ว'; return; }
+      if (list.length >= max) { msg.textContent = 'ใส่ได้สูงสุด ' + max + ' อีเมล'; return; }
+      list.push(v); input.value = ''; draw(); input.focus();
+    }
+    draw();
+    return { el: h('div.email-box', {}, rows, h('div.row', {}, input, addBtn), msg),
+      // An address typed but not added yet still counts when saving.
+      value: function () { var v = input.value.trim().toLowerCase(); return v && list.indexOf(v) < 0 ? list.concat([v]) : list.slice(); } };
+  }
+
   // ---------------- การชำระเงิน ----------------
-  function paymentsTab(el) {
+  /** financeOnly: the finance staff's page (#finance) — the order list without the bank/notification settings. */
+  function paymentsTab(el, financeOnly) {
     var settingsBox = h('div');
     var listBox = h('div.stack');
-    ui.mount(el, [listBox, settingsBox]);
-    api.call('admin.pay.settings').then(function (s) { drawSettings(s); }, function (e) { failed(settingsBox, e); });
+    ui.mount(el, [listBox, financeOnly ? null : settingsBox]);
+    if (!financeOnly) api.call('admin.pay.settings').then(function (s) { drawSettings(s); }, function (e) { failed(settingsBox, e); });
     loadList();
 
     function drawSettings(s) {
@@ -520,14 +554,16 @@
         accountName: h('input', { type: 'text', id: 'ps-name', value: b.accountName || '', placeholder: 'บริษัท … จำกัด' }),
         accountNo: h('input', { type: 'text', id: 'ps-no', value: b.accountNo || '', placeholder: '000-000000-0', inputmode: 'numeric' }),
         promptpay: h('input', { type: 'text', id: 'ps-pp', value: s.promptpayId || '', placeholder: 'ไม่บังคับ: เลขผู้เสียภาษีหรือเบอร์ที่ผูก PromptPay' }),
-        notify: h('input', { type: 'text', id: 'ps-notify', value: (s.notifyEmails || []).join(', '), placeholder: 'เว้นว่าง = อีเมลผู้ดูแลระบบ' })
+        notify: emailList('ps-notify', s.notifyEmails, 5, 'ยังไม่ได้ใส่ ระบบส่งถึงอีเมลผู้ดูแลระบบ'),
+        finance: emailList('ps-finance', s.financeEmails, 5, 'ยังไม่มีฝ่ายบัญชี')
       };
       var enabled = h('input', { type: 'checkbox', id: 'ps-on', checked: !!s.enabled });
       var whtOn = h('input', { type: 'checkbox', id: 'ps-wht', checked: !!s.whtEnabled });
       var msg = h('div');
       var save = ui.button('primary', 'บันทึก', function () {
         var payload = { enabled: enabled.checked, whtEnabled: whtOn.checked, promptpayId: f.promptpay.value,
-          notifyEmails: f.notify.value.split(/[,\s]+/).filter(Boolean),
+          notifyEmails: f.notify.value(),
+          financeEmails: f.finance.value(),
           bank: { bankName: f.bankName.value, branch: f.branch.value, accountName: f.accountName.value, accountNo: f.accountNo.value } };
         var run = function () {
           ui.busy(save, 'กำลังบันทึก…', function () {
@@ -544,7 +580,14 @@
         h('div.form-grid', {},
           h('label.field', { for: 'ps-bank' }, 'ธนาคาร', f.bankName), h('label.field', { for: 'ps-branch' }, 'สาขา', f.branch),
           h('label.field', { for: 'ps-name' }, 'ชื่อบัญชี', f.accountName), h('label.field', { for: 'ps-no' }, 'เลขที่บัญชี', f.accountNo),
-          h('label.field', { for: 'ps-pp' }, 'PromptPay (ไม่บังคับ)', f.promptpay), h('label.field', { for: 'ps-notify' }, 'อีเมลรับแจ้งเตือนสลิปใหม่', f.notify)),
+          h('label.field', { for: 'ps-pp' }, 'PromptPay (ไม่บังคับ)', f.promptpay)),
+        h('div.email-sets', {},
+          h('div.field', {}, h('label', { for: 'ps-finance', text: 'ฝ่ายบัญชี (ตรวจเงินเข้า)' }),
+            h('span.small.muted', { text: 'เข้าสู่ระบบด้วยอีเมลนี้แล้วเห็นเฉพาะหน้า "การชำระเงิน": ดูสลิป ยืนยันรับเงิน หรือตีกลับ ตั้งค่าอะไรไม่ได้ ได้อีเมลทุกครั้งที่มีสลิปใหม่' }),
+            f.finance.el),
+          h('div.field', {}, h('label', { for: 'ps-notify', text: 'แจ้งเตือนสลิปใหม่เพิ่มเติม (ไม่บังคับ)' }),
+            h('span.small.muted', { text: 'คนที่อยากรู้เมื่อมีสลิปใหม่ แต่ไม่ได้เข้าระบบ เช่น เจ้าของบริษัท ถ้าเว้นว่าง ระบบส่งถึงผู้ดูแลระบบ' }),
+            f.notify.el)),
         h('label.check-line', { for: 'ps-wht' }, whtOn, h('span', {}, h('strong', { text: 'ให้ลูกค้านิติบุคคลเลือกหักภาษี ณ ที่จ่าย 3% ได้' }),
           h('span.small.muted.block', { text: 'ลูกค้าโอนยอดหลังหัก และต้องแนบ 50 ทวิ · ปิดได้ถ้าผู้ทำบัญชีบอกว่าไม่ต้องหัก' }))),
         h('label.check-line', { for: 'ps-on' }, enabled, h('span', {}, h('strong', { text: 'เปิดรับชำระเงิน' }),
@@ -599,4 +642,13 @@
       });
     }
   }
+
+  // ---------------- finance staff: payments only ----------------
+  window.pages.finance = function (view) {
+    var body = h('div.stack');
+    ui.mount(view, [ui.pageHead('ฝ่ายบัญชี', 'การชำระเงิน'),
+      ui.note('info', 'ตรวจยอดในบัญชีธนาคารให้ตรงกับคำสั่งซื้อ แล้วกด "ยืนยันรับเงิน" เครดิตจะเข้าบัญชีลูกค้าทันที และลูกค้าได้อีเมลแจ้งว่าเข้าใช้งานได้'),
+      body]);
+    paymentsTab(body, true);
+  };
 })();

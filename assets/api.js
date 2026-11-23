@@ -108,7 +108,8 @@
   function me() {
     return { user: db.user, org: Object.assign({ complete: complete(), core: [], leadership: [], competencyLimits: { core: demoLimits('core'), leadership: demoLimits('leadership') } }, db.org),
       credits: { balance: balance(), freeBronzeLeft: Math.max(0, FREE - bronzeUsed()), costs: D.costs, packs: D.packs, pricing: D.pricing },
-      onboarding: onboarding(), hasSample: !!db.sample };
+      onboarding: onboarding(), hasSample: !!db.sample,
+      isFinance: ((db.paySet || {}).financeEmails || []).indexOf(db.user && db.user.email) >= 0 };
   }
   function pos(id) { var p = db.positions.filter(function (x) { return x.id === id; })[0]; if (!p) throw fail('NOT_FOUND', 'ไม่พบตำแหน่งนี้'); return p; }
   function view(p) {
@@ -213,11 +214,11 @@
       return o;
     },
     'pay.cancel': function (p) { var o = (db.orders || []).filter(function (x) { return x.id === p.id; })[0]; o.status = 'cancelled'; return o; },
-    'admin.pay.settings': function () { var s = db.paySet || {}; return { enabled: !!s.enabled, whtEnabled: !!s.whtEnabled, bank: s.bank || {}, promptpayId: s.promptpayId || '', notifyEmails: s.notifyEmails || [] }; },
+    'admin.pay.settings': function () { var s = db.paySet || {}; return { enabled: !!s.enabled, whtEnabled: !!s.whtEnabled, bank: s.bank || {}, promptpayId: s.promptpayId || '', notifyEmails: s.notifyEmails || [], financeEmails: s.financeEmails || [] }; },
     'admin.pay.settings.save': function (p) {
       var b = p.bank || {};
       if (p.enabled && (!b.bankName || !b.accountName || !/^[0-9][0-9 -]{6,25}$/.test(b.accountNo || ''))) throw fail('BAD_VALUE', 'ใส่ธนาคาร ชื่อบัญชี และเลขที่บัญชีให้ครบก่อนเปิดรับชำระเงิน');
-      db.paySet = { enabled: !!p.enabled, whtEnabled: !!p.whtEnabled, bank: b, promptpayId: p.promptpayId || '', notifyEmails: p.notifyEmails || [] };
+      db.paySet = { enabled: !!p.enabled, whtEnabled: !!p.whtEnabled, bank: b, promptpayId: p.promptpayId || '', notifyEmails: p.notifyEmails || [], financeEmails: p.financeEmails || [] };
       return handlers['admin.pay.settings']();
     },
     'admin.payments': function () {

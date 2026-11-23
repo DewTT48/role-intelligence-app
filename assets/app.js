@@ -15,7 +15,8 @@
       if (app.questions) return Promise.resolve(app.questions);
       return api.call('quest.questions').then(function (q) { app.questions = q; return q; });
     },
-    go: function (hash) { if (location.hash === hash) route(); else location.hash = hash; }
+    go: function (hash) { if (location.hash === hash) route(); else location.hash = hash; },
+    financeOnly: function () { return !!(app.me && app.me.isFinance && app.me.user.role !== 'admin'); }
   };
 
   // Line icons in the menu (added once).
@@ -31,6 +32,14 @@
     side.hidden = !me;
     if (!me) return;
     document.getElementById('nav-admin').hidden = me.user.role !== 'admin';
+    // Finance staff who are not admins see only the payments page (admins have it as a tab in the admin page).
+    var financeOnly = app.financeOnly();
+    document.getElementById('nav-finance').hidden = !financeOnly;
+    ['quest', 'jds', 'credits', 'company'].forEach(function (r) {
+      var a = document.querySelector('#side .nav a[data-route="' + r + '"]');
+      if (a) a.hidden = financeOnly;
+    });
+    document.getElementById('credit-box').hidden = financeOnly;
     document.getElementById('who-name').textContent = me.user.display_name || me.user.email.split('@')[0];
     document.getElementById('who').textContent = me.user.email;
     document.getElementById('who-link').title = 'บัญชีของฉัน · ' + me.user.email;
@@ -62,6 +71,7 @@
       return;
     }
     if (name === 'signin' && api.hasToken() && app.me) name = 'quest';
+    if (app.financeOnly() && ['finance', 'account'].indexOf(name) < 0) name = 'finance';
 
     var page = window.pages[name] || window.pages.quest;
     document.querySelectorAll('.nav a').forEach(function (a) { a.classList.toggle('on', a.dataset.route === name || (name === 'jd' && a.dataset.route === 'jds')); });
