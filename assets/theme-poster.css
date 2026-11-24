@@ -144,7 +144,8 @@ html.poster .balance, html.poster .launch, html.poster .welcome-credit { backgro
 html.poster .balance strong { font-family: var(--font-display); font-weight: 400; font-size: 44px; color: var(--hot); }
 html.poster .launch .bonus { color: var(--hot); }
 html.poster .pack.rec { border: 2px solid #080808; box-shadow: 6px 6px 0 var(--hot); }
-html.poster .pack-num { font-family: var(--font-display); font-weight: 400; font-size: 44px; color: var(--indigo); }
+html.poster .pack-num { font-family: 'Chakra Petch', var(--font-head); font-weight: 700; font-size: 30px; line-height: 1.1; color: var(--indigo); white-space: nowrap; }
+html.poster .pack-num > b { font-family: var(--font-display); font-weight: 400; font-size: 52px; margin-right: 6px; }
 html.poster .core-row { border-radius: var(--radius); }
 html.poster .core-row:not(.off) { border: 1px solid #080808; background: #fff; }
 html.poster .provider { border: 1px solid #080808; border-radius: var(--radius); }

@@ -327,14 +327,14 @@
       h('div.packs', {}, c.packs.map(function (p) {
         return h('div.card.pack' + (p.recommended ? '.rec' : ''), {},
           h('div.row-between', {}, h('strong', { text: p.name || p.id }), p.recommended ? h('span.pill', { text: 'คุ้มที่สุดสำหรับทีม' }) : null),
-          h('div.pack-num', { text: p.credits + ' เครดิต' }),
+          h('div.pack-num', {}, h('b', { text: String(p.credits) }), ' เครดิต'),
           (bonusSlots[p.id] = h('div.bonus-slot')),
           h('div.pack-price', { text: p.priceThb.toLocaleString('th-TH') + ' ฿' + (pr.pricesIncludeVat ? '' : ' + VAT') }),
           h('span.muted.small', { text: (pr.pricesIncludeVat ? 'รวม VAT แล้ว · ' : '') + '~' + Math.round(p.priceThb / p.credits) + ' ฿ ต่อเครดิต · Role Blueprint ' + Math.floor(p.credits / c.costs.gold) + ' ฉบับ' }),
           (buyBtns[p.id] = h('div.buy-slot', { 'data-rec': p.recommended ? '1' : '' }, h('button.btn', { type: 'button', disabled: true, text: 'กำลังโหลด…' }))));
       }).concat([h('div.card.pack', {},
         h('strong', { text: 'Enterprise / ที่ปรึกษา' }),
-        h('div.pack-num', { text: 'ตกลงราคา' }),
+        h('div.pack-num.pack-deal', { text: 'ตกลงราคา' }),
         h('span.muted.small', { text: 'ทำ JD ทั้งองค์กร 300 ตำแหน่งขึ้นไป พร้อม workshop และ Competency ขององค์กร' }),
         window.RI_CONFIG.contactEmail ? h('a.btn', { href: 'mailto:' + window.RI_CONFIG.contactEmail, text: 'ติดต่อเรา' }) : h('span.muted.small', { text: 'ติดต่อผู้ดูแลระบบเพื่อตกลงราคา' }),
         window.RI_CONFIG.contactEmail ? h('span.muted.small', { text: window.RI_CONFIG.contactEmail }) : null)])),
