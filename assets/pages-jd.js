@@ -579,11 +579,11 @@
                     h('div.was', {}, h('span.eyebrow', { text: 'เดิม' }), h('pre.textv', { text: toText_(before) })),
                     h('div.now', {}, h('span.eyebrow', { text: 'ข้อเสนอจาก AI' }), h('pre.textv', { text: toText_(r.proposal) }))),
                   h('div.row.end', {},
-                    ui.button('ghost', 'ไม่ใช้', function () { ui.clear(out); }),
+                    ui.button('ghost', 'ไม่ใช้', function () { ui.clear(out); if (r.editId) api.call('jd.edit.reject', { positionId: positionId, editId: r.editId }).catch(function () {}); }),
                     ui.button('primary', 'ใช้ข้อความนี้', function (e) {
                       var next = r.scope === 'item' ? val.map(function (x, n) { return n === r.itemIndex ? r.proposal : x; }) : r.proposal;
                       ui.busy(e.currentTarget, 'กำลังบันทึก…', function () {
-                        return api.call('jd.edit.save', { positionId: positionId, version: v.version, sectionKey: key, value: next, note: 'AI: ' + instr.value }).then(function () {
+                        return api.call('jd.edit.save', { positionId: positionId, version: v.version, sectionKey: key, value: next, note: 'AI: ' + instr.value, aiEditId: r.editId }).then(function () {
                           ui.toast('ใช้ข้อเสนอของ AI แล้ว เป็นเวอร์ชันใหม่'); return reload();
                         });
                       }).catch(function (er) { ui.toast(ui.errorText(er), 'err'); });

@@ -498,6 +498,7 @@
       ].filter(function (x) { return x.sections.length === 2; });
       return { status: 'done', issues: db.checks[key], checkedAt: now(), version: Number(v.version), auto: auto };
     },
+    'jd.edit.reject': function () { return { ok: true }; },
     'jd.edit.ai': function (p) {
       if (!String(p.instruction || '').trim()) throw fail('NEED_INPUT', 'บอก AI ว่าอยากให้แก้อย่างไร');
       db.edits = db.edits || [];

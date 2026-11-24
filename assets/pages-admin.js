@@ -339,13 +339,23 @@
 
   /** One line on the automatic clean-up (Maintenance.js): when it last ran and what it removed. */
   function maintenanceNote(m) {
-    if (!m || !m.cleanedAt) return null;
+    if (!m) return null;
+    var btn = ui.button('ghost.small-btn', 'สำรองตอนนี้', function () {
+      ui.busy(btn, 'กำลังสำรอง…', function () { return api.call('admin.backup.run').then(function (s) { ui.toast('สำรองแล้ว ' + when(s.backupAt)); }); })
+        .catch(function (e) { ui.toast(ui.errorText(e), 'err'); });
+    });
+    var backup = h('p.small.muted.row', { style: 'align-items:center;gap:10px' },
+      h('span', { text: m.backupError ? 'สำรองฐานข้อมูลครั้งล่าสุดไม่สำเร็จ: ' + m.backupError :
+        m.backupAt ? 'สำรองฐานข้อมูลอัตโนมัติทุก 7 วัน ล่าสุด ' + when(m.backupAt) + ' · เก็บไว้ ' + num(m.backups) + ' ชุดในโฟลเดอร์ Drive "Role Intelligence · สำรองฐานข้อมูล"' :
+        'ยังไม่เคยสำรองฐานข้อมูล (ระบบจะสำรองเองภายในวันนี้)' }), btn);
+    if (!m.cleanedAt) return backup;
     var c = m.cleaned || {};
     var r = m.retention || {};
     var removed = (c.sessions || 0) + (c.login_codes || 0) + (c.ai_calls || 0) + (c.audit_log || 0);
-    return h('p.small.muted', { text: 'ล้างข้อมูลเก่าอัตโนมัติเดือนละครั้ง ล่าสุด ' + when(m.cleanedAt) + ' ลบ ' + num(removed) + ' แถว' +
+    var clean = h('p.small.muted', { text: 'ล้างข้อมูลเก่าอัตโนมัติเดือนละครั้ง ล่าสุด ' + when(m.cleanedAt) + ' ลบ ' + num(removed) + ' แถว' +
       ' (บันทึกการเรียก AI เก็บ ' + num(r.AI_CALLS_DAYS) + ' วัน · บันทึกการใช้งาน ' + num(r.AUDIT_LOG_DAYS) + ' วัน · รหัสเข้าสู่ระบบและ session ที่หมดอายุ)' +
       (m.expired && m.expired.credits ? ' · วันนี้เครดิตหมดอายุ ' + ui.fmtCredits(m.expired.credits) + ' เครดิต จาก ' + num(m.expired.orgs) + ' บริษัท' : '') });
+    return h('div', {}, clean, backup);
   }
 
   // ---------------- ค่า AI ----------------
