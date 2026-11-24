@@ -446,10 +446,15 @@ body { line-height: 1.8; }
 .org-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .org-grid .wide { grid-column: 1 / -1; }
 .org-foot { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
-.video { margin: 36px 0 8px; border: 1px solid #fff; border-radius: var(--r); overflow: hidden; aspect-ratio: 16 / 9; max-width: 880px; background: #000; box-shadow: 10px 10px 0 var(--hot); }
-.video iframe { width: 100%; height: 100%; border: 0; display: block; }
-.video-play { position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0; background: #000; cursor: pointer; }
-.video-play img { width: 100%; height: 100%; object-fit: cover; opacity: .75; display: block; }
-.video-btn { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 84px; height: 84px; border-radius: 50%; background: var(--hot); color: #080808; font-size: 34px; line-height: 84px; text-align: center; border: 2px solid #080808; box-shadow: var(--hard); }
-.video-label { position: absolute; left: 16px; bottom: 14px; background: #080808; color: #fff; font-weight: 700; padding: 6px 12px; border-radius: var(--r); }
+.video-open { margin: 32px 0 36px; }
+.video-open small { font-weight: 600; opacity: .7; font-size: 14px; }
+.video-open-play { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #080808; color: var(--hot); font-size: 12px; }
+dialog.pop { border: 1px solid #080808; border-radius: var(--r); padding: 0; width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; box-shadow: 10px 10px 0 var(--hot); background: #fff; color: var(--ink); }
+dialog.pop::backdrop { background: rgba(8, 8, 8, .72); }
+dialog.pop .org-form { margin: 0; border: 0; box-shadow: none; }
+dialog.pop-video { width: min(1100px, calc(100vw - 32px)); background: #080808; box-shadow: 10px 10px 0 var(--hot); overflow: visible; }
+.pop-player { aspect-ratio: 16 / 9; width: 100%; }
+.pop-player iframe { width: 100%; height: 100%; border: 0; display: block; }
+.pop-close { position: absolute; right: 10px; top: 8px; width: 40px; height: 40px; border: 1px solid #080808; border-radius: var(--r); background: #fff; font-size: 26px; line-height: 1; cursor: pointer; z-index: 2; }
+.pop-video .pop-close { right: 0; top: -50px; background: var(--hot); }
 @media (max-width: 900px) { .join-in { grid-template-columns: 1fr; gap: 32px; } .org-grid { grid-template-columns: 1fr; } .join-stats b { font-size: 40px; } }

@@ -74,14 +74,17 @@
   }
 
   // ---------- company-wide request ----------
-  var org = $('#org-contact');
-  if (org) {
+  var org = $('#org-contact'), orgDlg = $('#org-dialog');
+  function openDlg(d) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
+  function closeDlg(d) { if (d.close) d.close(); else d.removeAttribute('open'); }
+  $$('.js-pop-close').forEach(function (b) { b.addEventListener('click', function () { closeDlg(b.closest('dialog')); }); });
+  $$('dialog.pop').forEach(function (d) { d.addEventListener('click', function (e) { if (e.target === d) closeDlg(d); }); });   // click outside closes
+  if (org && orgDlg) {
     $$('.js-org-open').forEach(function (a) {
       a.addEventListener('click', function (e) {
         e.preventDefault();
-        org.hidden = false;
-        org.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        setTimeout(function () { org.name.focus({ preventScroll: true }); }, 400);
+        openDlg(orgDlg);
+        setTimeout(function () { org.name.focus(); }, 50);
       });
     });
     org.addEventListener('submit', function (e) {
@@ -101,16 +104,21 @@
     });
   }
 
-  // ---------- video: the YouTube player loads only when clicked ----------
-  $$('.video[data-yt]').forEach(function (box) {
-    var b = $('.video-play', box);
-    b.addEventListener('click', function () {
-      var f = document.createElement('iframe');
-      f.src = 'https://www.youtube-nocookie.com/embed/' + box.getAttribute('data-yt') + '?autoplay=1&rel=0';
-      f.title = 'วิธีใช้งาน Role Intelligence';
-      f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
-      f.allowFullscreen = true;
-      box.replaceChild(f, b);
+  // ---------- video: opens in a window; the YouTube player loads only then and stops when the window closes ----------
+  var vDlg = $('#video-dialog');
+  if (vDlg) {
+    $$('.js-video-open').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var f = document.createElement('iframe');
+        f.src = 'https://www.youtube-nocookie.com/embed/' + b.getAttribute('data-yt') + '?autoplay=1&rel=0';
+        f.title = 'วิธีใช้งาน Role Intelligence';
+        f.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+        f.allowFullscreen = true;
+        var box = $('.pop-player', vDlg);
+        box.innerHTML = ''; box.appendChild(f);
+        openDlg(vDlg);
+      });
     });
-  });
+    vDlg.addEventListener('close', function () { $('.pop-player', vDlg).innerHTML = ''; });
+  }
 })();

@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="assets/landing.css?v=20261125a">
+<link rel="stylesheet" href="assets/landing.css?v=20261125c">
 </head>
 <body>
 
@@ -189,12 +189,9 @@
         <li><span class="step-no">02</span><h3>ตอบคำถามเรื่องงาน</h3><p>ทำเองก็ได้ หรือนั่งคุยกับหัวหน้างานแล้วตอบไปด้วยกันก็ได้</p></li>
         <li><span class="step-no">03</span><h3>อ่าน แก้ แล้วนำไปใช้</h3><p>แก้ในหน้าจอได้ทุกหมวด แล้วดาวน์โหลดเป็นไฟล์ Word</p></li>
       </ol>
-      <div class="video" data-yt="wpcEwquhLlU">
-        <button type="button" class="video-play" aria-label="เล่นวิดีโอวิธีใช้งาน 2 นาที 40 วินาที">
-          <img src="https://i.ytimg.com/vi/wpcEwquhLlU/hqdefault.jpg" alt="" loading="lazy">
-          <span class="video-btn" aria-hidden="true">▶</span><span class="video-label">ดูวิธีใช้งาน · 2:40</span>
-        </button>
-      </div>
+      <button type="button" class="btn btn-pink btn-lg video-open js-video-open" data-yt="wpcEwquhLlU">
+        <span class="video-open-play" aria-hidden="true">▶</span> ดูวิธีใช้งาน <small>2 นาที 40 วินาที</small>
+      </button>
       <div class="principle">
         <p class="big">AI ช่วยเขียน<br><span>คุณเป็นคนตัดสินใจ</span></p>
         <ul>
@@ -235,22 +232,8 @@
       </div>
       <div class="ent">
         <div><b>มี 300 ตำแหน่งขึ้นไป หรืออยากให้ทีมเราช่วยทำ</b><span>เราคิดราคาตามจำนวนตำแหน่ง พร้อม workshop และช่วยวาง Competency ของบริษัท · ถ้าต้องการให้หลายฝ่ายตรวจและอนุมัติในระบบ ส่งคำขอไว้ได้เลย</span></div>
-        <a class="btn btn-ghost js-org-open" href="#org-contact">ส่งคำขอใช้ทั้งองค์กร</a>
+        <a class="btn btn-ghost js-org-open" href="#org-dialog">ส่งคำขอใช้ทั้งองค์กร</a>
       </div>
-      <form class="org-form" id="org-contact" hidden novalidate>
-        <h3>ขอใช้ Role Intelligence ทั้งองค์กร</h3>
-        <p class="muted">กรอกไว้ แล้วทีมงานจะติดต่อกลับโดยเร็ว</p>
-        <div class="org-grid">
-          <label>ชื่อผู้ติดต่อ *<input name="name" autocomplete="name" required maxlength="80"></label>
-          <label>บริษัท *<input name="company" autocomplete="organization" required maxlength="120"></label>
-          <label>อีเมล *<input name="email" type="email" autocomplete="email" required maxlength="120"></label>
-          <label>เบอร์โทร<input name="phone" type="tel" autocomplete="tel" maxlength="30"></label>
-          <label>จำนวนตำแหน่งโดยประมาณ<input name="positions" inputmode="numeric" maxlength="30" placeholder="เช่น 300"></label>
-          <label class="hp" aria-hidden="true">เว็บไซต์<input name="website" tabindex="-1" autocomplete="off"></label>
-          <label class="wide">อยากให้เราช่วยเรื่องอะไร<textarea name="message" rows="3" maxlength="2000"></textarea></label>
-        </div>
-        <div class="org-foot"><button class="btn btn-pink" type="submit">ส่งคำขอ</button><span class="form-msg" role="status" aria-live="polite"></span></div>
-      </form>
       <p class="packs-note">ราคารวม VAT · เครดิตใช้ได้ 12 เดือน · ออกใบกำกับภาษีเต็มรูปได้ · หัก ณ ที่จ่ายได้ · โอนเข้าบัญชีบริษัท</p>
     </div>
   </section>
@@ -313,10 +296,34 @@
   </section>
 </main>
 
+
+<!-- ============ windows: company request, how-to video (opened by launch.js) ============ -->
+<dialog class="pop" id="org-dialog" aria-labelledby="org-title">
+  <button type="button" class="pop-close js-pop-close" aria-label="ปิด">×</button>
+      <form class="org-form" id="org-contact" method="dialog" novalidate>
+        <h3 id="org-title">ขอใช้ Role Intelligence ทั้งองค์กร</h3>
+        <p class="muted">กรอกไว้ แล้วทีมงานจะติดต่อกลับโดยเร็ว</p>
+        <div class="org-grid">
+          <label>ชื่อผู้ติดต่อ *<input name="name" autocomplete="name" required maxlength="80"></label>
+          <label>บริษัท *<input name="company" autocomplete="organization" required maxlength="120"></label>
+          <label>อีเมล *<input name="email" type="email" autocomplete="email" required maxlength="120"></label>
+          <label>เบอร์โทร<input name="phone" type="tel" autocomplete="tel" maxlength="30"></label>
+          <label>จำนวนตำแหน่งโดยประมาณ<input name="positions" inputmode="numeric" maxlength="30" placeholder="เช่น 300"></label>
+          <label class="hp" aria-hidden="true">เว็บไซต์<input name="website" tabindex="-1" autocomplete="off"></label>
+          <label class="wide">อยากให้เราช่วยเรื่องอะไร<textarea name="message" rows="3" maxlength="2000"></textarea></label>
+        </div>
+        <div class="org-foot"><button class="btn btn-pink" type="submit">ส่งคำขอ</button><span class="form-msg" role="status" aria-live="polite"></span></div>
+      </form>
+</dialog>
+<dialog class="pop pop-video" id="video-dialog" aria-label="วิดีโอวิธีใช้งาน">
+  <button type="button" class="pop-close js-pop-close" aria-label="ปิดวิดีโอ">×</button>
+  <div class="pop-player"></div>
+</dialog>
+
 <footer class="foot">
   <div class="wrap foot-in">
     <div><span class="wm">RI<i></i></span><p>Role Intelligence · Blueprint your roles</p><p class="muted">ให้บริการโดย บริษัท ภูมิใจ ดีใจ จำกัด · 103 ม.13 ต.ป่าอ้อดอนชัย อ.เมือง จ.เชียงราย 57000 · <a href="mailto:dewteerapap@seederschool.com">dewteerapap@seederschool.com</a></p></div>
-    <nav aria-label="ลิงก์ท้ายหน้า"><a href="terms.html">ข้อตกลงการใช้งาน</a><a href="refund.html">นโยบายคืนเงินและเครดิต</a><a href="privacy.html">นโยบายความเป็นส่วนตัว</a><a href="#org-contact" class="js-org-open">ใช้ทั้งองค์กร</a><a href="app/#signin">เข้าสู่ระบบ</a></nav>
+    <nav aria-label="ลิงก์ท้ายหน้า"><a href="terms.html">ข้อตกลงการใช้งาน</a><a href="refund.html">นโยบายคืนเงินและเครดิต</a><a href="privacy.html">นโยบายความเป็นส่วนตัว</a><a href="#org-dialog" class="js-org-open">ใช้ทั้งองค์กร</a><a href="app/#signin">เข้าสู่ระบบ</a></nav>
   </div>
   <p class="wrap photo-credit">ภาพประกอบจาก Unsplash</p>
 </footer>
@@ -325,6 +332,6 @@
 <script src="assets/sample-jds.js?v=20261123b"></script>
 <script src="assets/landing.js?v=20261123h"></script>
 <script src="config.js?v=20261125a"></script>
-<script src="assets/launch.js?v=20261125b"></script>
+<script src="assets/launch.js?v=20261125c"></script>
 </body>
 </html>
