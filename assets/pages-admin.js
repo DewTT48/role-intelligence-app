@@ -169,8 +169,15 @@
       h('thead', {}, h('tr', {}, head.map(function (x) { return h('th', { text: x }); }))),
       h('tbody', {}, rows.length ? rows : [h('tr', {}, h('td.muted', { colspan: String(head.length), text: 'ยังไม่มีข้อมูลในช่วงนี้' }))])));
   }
+  /** Big number in Anton; a Thai or ฿ unit after it ("342.18 ฿", "12 ครั้ง") in Chakra Petch, since Anton has no Thai glyphs. */
+  function statValue_(value) {
+    var m = /^(.*\S)\s+([฿\u0E00-\u0E7F][฿\u0E00-\u0E7F\s]*)$/.exec(String(value === undefined || value === null ? '' : value));
+    if (m && !/[\u0E00-\u0E7F]/.test(m[1])) return h('strong.stat-value', {}, m[1], h('span.stat-unit', { text: ' ' + m[2] }));
+    return h('strong.stat-value' + (/[\u0E00-\u0E7F]/.test(String(value)) ? '.stat-text' : ''), { text: value });   // a date or words: all Chakra Petch
+  }
+
   function stat(label, value, sub, tone) {
-    return h('div.stat' + (tone ? '.' + tone : ''), {}, h('span.stat-label', { text: label }), h('strong.stat-value', { text: value }), sub ? h('span.stat-sub', { text: sub }) : null);
+    return h('div.stat' + (tone ? '.' + tone : ''), {}, h('span.stat-label', { text: label }), statValue_(value), sub ? h('span.stat-sub', { text: sub }) : null);
   }
   function periodPicker(onChange) {
     var opts = [[7, '7 วัน'], [30, '30 วัน'], [90, '90 วัน'], ['all', 'ทั้งหมด']];
@@ -353,7 +360,7 @@
     }, { icon: 'history' });
     return h('section.card', {},
       h('div.row-between', {}, h('h2', { text: 'ราคาโมเดล' }), refresh),
-      h('p.muted', { text: 'ระบบดึงราคาเองทุก 7 วัน: รุ่นใหม่ล่าสุดของแต่ละค่ายที่ใช้สร้างข้อความได้ และทุกรุ่นที่ระบบนี้ใช้อยู่ หน่วยเป็นดอลลาร์ต่อ 1 ล้าน token (การคิดของ AI นับเป็น output)' }),
+      h('p.muted', { text: 'ระบบดึงราคาเองทุก 7 วัน: ทุกระดับราคาที่แต่ละค่ายออกในช่วง 6 เดือนล่าสุด (รวมรุ่นเล็กราคาถูก) และทุกรุ่นที่ระบบนี้ใช้อยู่ · ราคาเป็น USD ต่อ 1 ล้าน token' }),
       h('div.stats', {},
         stat('อัตราแลกเปลี่ยน', '1 $ = ' + Number(P.usdThb).toLocaleString('th-TH', { maximumFractionDigits: 2 }) + ' ฿', P.fx ? 'จาก ' + P.fx.source : 'ค่าเริ่มต้น (ยังดึงไม่ได้)'),
         stat('ดึงราคาล่าสุด', P.fetched_at ? new Date(P.fetched_at).toLocaleDateString('th-TH', { dateStyle: 'medium' }) : 'ยังไม่เคย',
