@@ -30,6 +30,7 @@
       h('header.stack', {},
         h('span.eyebrow', { text: 'ยินดีต้อนรับ' }),
         h('h1', { text: 'สร้าง JD แรกได้ใน 3 ขั้น' }),
+        h('a.video-link', { href: app.VIDEO_URL, target: '_blank', rel: 'noopener' }, h('span.video-link-play', { 'aria-hidden': 'true', text: '▶' }), 'ดูวิธีใช้งาน 2:40 นาที (YouTube)'),
         h('p', { text: 'ไม่ต้องเขียนเองทั้งหมด ตอบคำถามทีละข้อ AI เสนอตัวเลือกให้กดเลือก แล้วระบบเขียน JD ให้' })),
       h('ol.welcome-steps', {},
         step(1, 'บอกเรื่องบริษัท', '3 คำถาม · 1 นาที · +1 เครดิต', 'ช่วยให้ AI เขียนให้ตรงกับธุรกิจของคุณ ชื่อบริษัทไม่ถูกส่งให้ AI'),

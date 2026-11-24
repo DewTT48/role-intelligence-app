@@ -149,7 +149,7 @@
   }
 
   // ======================= admin home: tabs =======================
-  var TABS = [['overview', 'ภาพรวม'], ['cost', 'ค่า AI'], ['customers', 'ลูกค้าและเครดิต'], ['payments', 'การชำระเงิน'], ['followup', 'ผู้ใช้ใหม่ที่ยังไม่เริ่ม'], ['ai', 'ตั้งค่า AI']];
+  var TABS = [['overview', 'ภาพรวม'], ['cost', 'ค่า AI'], ['customers', 'ลูกค้าและเครดิต'], ['payments', 'การชำระเงิน'], ['followup', 'ผู้ใช้ใหม่ที่ยังไม่เริ่ม'], ['queue', 'คิวเข้าใช้'], ['inquiries', 'คำขอองค์กร'], ['ai', 'ตั้งค่า AI']];
   var KIND_LABEL = { 'new': 'สร้างใหม่', upgrade: 'อัปเกรดจากระดับก่อน', rewrite: 'เขียนใหม่ทั้งฉบับ' };
   var FUNNEL_LABEL = { signup: 'สมัคร', company: 'กรอกข้อมูลบริษัท', firstJd: 'สร้าง JD แรก', paid: 'ซื้อเครดิต' };
   var ACTION_LABEL = { signup_bonus: 'เครดิตฟรีเมื่อสมัคร', company_profile_bonus: 'โบนัสข้อมูลบริษัท', core_competency_bonus: 'โบนัส Core Competency',
@@ -219,9 +219,88 @@
         return h('a' + (t[0] === tab ? '.on' : ''), { href: '#admin/' + t[0], text: t[1], 'aria-current': t[0] === tab ? 'page' : null });
       })),
       body]);
-    ({ overview: overviewTab, cost: costTab, customers: customersTab, payments: paymentsTab, followup: followupTab, ai: aiSettings })[tab](body);
+    ({ overview: overviewTab, cost: costTab, customers: customersTab, payments: paymentsTab, followup: followupTab, queue: queueTab, inquiries: inquiriesTab, ai: aiSettings })[tab](body);
   };
   window.pages['ai-settings'] = function (view) { window.pages.admin(view, 'ai'); };
+
+  // ---------------- คิวเข้าใช้ (soft launch) ----------------
+  function queueTab(el) {
+    var out = h('div.stack');
+    ui.mount(el, out);
+    function draw(d) {
+      var isWait = d.mode === 'waitlist';
+      var quota = h('input', { type: 'number', min: '0', max: '1000', value: String(d.dailyQuota), 'aria-label': 'จำนวนที่เปิดต่อวัน', style: 'width:110px' });
+      var save = ui.button('primary.small-btn', 'บันทึก', function () {
+        ui.busy(save, 'กำลังบันทึก…', function () { return api.call('admin.waitlist.config', { dailyQuota: Number(quota.value) }).then(draw); })
+          .catch(function (e) { ui.toast(ui.errorText(e), 'err'); });
+      });
+      var modeBtn = ui.button(isWait ? 'ghost.small-btn' : 'primary.small-btn', isWait ? 'เปิดให้สมัครได้ทันที (เลิกใช้คิว)' : 'เริ่มใช้คิว (ปิดการสมัครตรง)', function () {
+        var next = isWait ? 'open' : 'waitlist';
+        ui.confirmBox(isWait ? 'เปิดให้สมัครได้ทันที' : 'เริ่มใช้คิว', isWait ? 'ทุกอีเมลสมัครได้เลยเหมือนเดิม คนที่ยังรอคิวอยู่ก็สมัครได้ทันที' :
+          'อีเมลใหม่ต้องลงชื่อรอคิวที่หน้าแรก ระบบปล่อยวันละ ' + d.dailyQuota + ' คนตามลำดับ บัญชีเดิม ผู้ดูแล และฝ่ายบัญชีเข้าได้ตามปกติ', 'ยืนยัน').then(function (y) {
+          if (y) api.call('admin.waitlist.config', { mode: next }).then(draw, function (e) { ui.toast(ui.errorText(e), 'err'); });
+        });
+      });
+      var waiting = d.rows.filter(function (r) { return r.status === 'waiting'; });
+      var admitAll = waiting.length ? ui.button('small-btn', 'ปล่อย 5 คนถัดไปตอนนี้', function () {
+        ui.busy(admitAll, 'กำลังปล่อย…', function () { return api.call('admin.waitlist.admit', { ids: waiting.slice().sort(function (a, b) { return a.position - b.position; }).slice(0, 5).map(function (r) { return r.id; }) }).then(draw); })
+          .catch(function (e) { ui.toast(ui.errorText(e), 'err'); });
+      }) : null;
+      var rows = d.rows.map(function (r) {
+        var act = r.status === 'waiting' ? h('div.row', {},
+          ui.button('small-btn', 'ปล่อยเลย', function () { api.call('admin.waitlist.admit', { ids: [r.id] }).then(draw, function (e) { ui.toast(ui.errorText(e), 'err'); }); }),
+          ui.button('ghost.small-btn', 'เอาออก', function () {
+            ui.confirmBox('เอาออกจากคิว', r.email + ' จะไม่อยู่ในคิวและไม่ได้รับอีเมล', 'เอาออก').then(function (y) { if (y) api.call('admin.waitlist.remove', { id: r.id }).then(draw); });
+          })) : h('span.small.muted', { text: r.signedUp ? 'สมัครแล้ว' : 'ยังไม่ได้เข้าใช้' });
+        return h('tr', {},
+          h('td.mono', { text: r.position ? '#' + r.position : '–' }),
+          h('td', {}, h('div', { text: r.email }), r.name || r.company ? h('span.small.muted', { text: [r.name, r.company].filter(Boolean).join(' · ') }) : null),
+          h('td', { text: r.status === 'waiting' ? 'รอคิว' : r.admitted_by === 'auto' ? 'ถึงคิวแล้ว' : 'ปล่อยเอง' }),
+          h('td.small', { text: when(r.created_at) }), h('td.small', { text: when(r.admitted_at) }), h('td', {}, act));
+      });
+      ui.mount(out, [
+        ui.note(isWait ? 'warn' : 'info', isWait ? 'ตอนนี้ใช้คิวอยู่: อีเมลใหม่ต้องลงชื่อที่หน้าแรก ระบบปล่อยตามลำดับวันละ ' + d.dailyQuota + ' คน (นับตามวันไทย) และส่งอีเมลแจ้ง' :
+          'ตอนนี้ใครก็สมัครได้ทันที (ยังไม่ได้ใช้คิว) · หน้าแรกจะแสดงตัวนับและฟอร์มลงชื่อเมื่อเริ่มใช้คิว'),
+        h('div.stats', {},
+          stat('วันนี้เปิด', num(d.dailyQuota) + ' ที่', 'หน้าแรกแสดงตัวเลขนี้'),
+          stat('เหลือวันนี้', num(d.remainingToday) + ' ที่', 'ปล่อยอัตโนมัติไปแล้ว ' + num(d.admittedToday), d.remainingToday ? 'pink' : null),
+          stat('รอคิวอยู่', num(d.waiting) + ' คน', d.dailyQuota ? 'ถ้าไม่เพิ่มโควตา คิวสุดท้ายรอราว ' + num(Math.ceil(d.waiting / d.dailyQuota)) + ' วัน' : 'โควตาเป็น 0: ไม่มีใครได้เข้าอัตโนมัติ'),
+          stat('อีเมลที่ส่งได้อีกวันนี้', num(d.mailQuota), 'ระบบหยุดปล่อยอัตโนมัติเมื่อเหลือน้อยกว่า 3')),
+        h('section.card.stack', {},
+          h('h2', { text: 'ตั้งค่า' }),
+          h('div.row', {}, h('label', { style: 'display:flex;align-items:center;gap:8px;font-weight:700' }, 'เปิดวันละ', quota, 'คน'), save, modeBtn, admitAll),
+          h('p.small.muted', { text: 'การกด "ปล่อยเลย" ไม่นับรวมกับโควตาที่หน้าแรกแสดง · คนที่ปล่อยแล้วสมัครด้วยอีเมลนั้นได้ทันที' })),
+        table(['คิว', 'อีเมล', 'สถานะ', 'ลงชื่อเมื่อ', 'ปล่อยเมื่อ', ''], rows)]);
+    }
+    ui.mount(out, h('p.muted', { text: 'กำลังโหลด…' }));
+    api.call('admin.waitlist').then(draw, function (e) { ui.mount(out, ui.note('err', ui.errorText(e))); });
+  }
+
+  // ---------------- คำขอองค์กร ----------------
+  function inquiriesTab(el) {
+    var out = h('div.stack');
+    ui.mount(el, out);
+    var LABEL = { 'new': 'ใหม่', contacted: 'ติดต่อแล้ว', closed: 'ปิดแล้ว' };
+    function draw(d) {
+      var rows = d.rows.map(function (r) {
+        var sel = h('select', { 'aria-label': 'สถานะ', onchange: function () { api.call('admin.inquiry.update', { id: r.id, status: sel.value }).then(draw); } },
+          Object.keys(LABEL).map(function (k) { return h('option', { value: k, text: LABEL[k], selected: r.status === k }); }));
+        return h('tr', {},
+          h('td.small', { text: when(r.created_at) }),
+          h('td', {}, h('strong', { text: r.company }), h('div.small', { text: r.name })),
+          h('td', {}, h('a', { href: 'mailto:' + r.email, text: r.email }), r.phone ? h('div.small', { text: r.phone }) : null),
+          h('td.mono', { text: r.positions || '–' }),
+          h('td.small', { text: r.message || '–' }),
+          h('td', {}, sel, r.note ? h('div.small.muted', { text: r.note }) : null));
+      });
+      ui.mount(out, [
+        ui.note('info', 'คำขอจากฟอร์ม "ส่งคำขอใช้ทั้งองค์กร" ที่หน้าแรก · ระบบส่งอีเมลแจ้งไปที่ ' + d.notify + ' ทุกครั้ง และส่งอีเมลยืนยันให้ผู้ขอ'),
+        h('div.stats', {}, stat('คำขอใหม่', num(d.newCount) + ' รายการ', 'ทั้งหมด ' + num(d.rows.length), d.newCount ? 'pink' : null)),
+        table(['เมื่อ', 'บริษัท / ผู้ติดต่อ', 'ติดต่อ', 'ตำแหน่ง', 'ข้อความ', 'สถานะ'], rows)]);
+    }
+    ui.mount(out, h('p.muted', { text: 'กำลังโหลด…' }));
+    api.call('admin.inquiries').then(draw, function (e) { ui.mount(out, ui.note('err', ui.errorText(e))); });
+  }
 
   // ---------------- ภาพรวม ----------------
   function overviewTab(el) {

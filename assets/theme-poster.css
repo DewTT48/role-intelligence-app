@@ -235,3 +235,7 @@ html.poster .bank-card { box-shadow: 8px 8px 0 var(--indigo); border: 1px solid 
 html.poster .pay-status { border-radius: 2px; border: 1px solid currentColor; }
 html.poster .order-row { border: 1px solid #080808; border-radius: var(--radius); }
 html.poster .order-row:hover { box-shadow: var(--hard-sm); transform: translate(-1px, -1px); }
+/* how-to video links (welcome page, sidebar) */
+html.poster .video-link { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; color: var(--indigo); text-decoration: none; margin-top: 4px; }
+html.poster .video-link-play { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--hot); color: #080808; font-size: 12px; border: 1px solid #080808; }
+html.poster .video-side { display: block; color: #FFB3D7; text-decoration: none; margin-bottom: 6px; }

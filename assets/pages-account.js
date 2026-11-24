@@ -11,7 +11,9 @@
     function render() {
       var email = h('input', { type: 'email', id: 'signin-email', autocomplete: 'email', inputmode: 'email', placeholder: 'name@company.com', value: state.email });
       var code = h('input.mono.code-input', { type: 'text', id: 'signin-code', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: '6', placeholder: '______' });
-      var msg = state.msg ? ui.note(state.msg.kind, state.msg.text) : null;
+      var msg = state.msg ? (state.msg.waitlist
+        ? h('div.note.info.core-nudge', { role: 'status' }, h('span', { text: state.msg.text }), h('a.btn.primary.small-btn', { href: '../#join', text: 'ลงชื่อรอคิว' }))
+        : ui.note(state.msg.kind, state.msg.text)) : null;
 
       var form = state.step === 'email'
         ? h('form.stack', { onsubmit: function (e) { e.preventDefault(); sendCode(e.submitter || form.querySelector('button')); } },
@@ -56,7 +58,7 @@
           return api.call('auth.requestCode', { email: state.email }).then(function () {
             state.step = 'code'; state.msg = null; render();
           });
-        }).catch(function (e) { state.msg = { kind: 'err', text: ui.errorText(e) }; render(); });
+        }).catch(function (e) { state.msg = { kind: 'err', text: ui.errorText(e), waitlist: e.code === 'WAITLIST' }; render(); });
       }
       function verify(btn) {
         ui.busy(btn, 'กำลังตรวจ…', function () {

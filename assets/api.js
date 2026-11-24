@@ -162,6 +162,25 @@
     }
     return { tier: tier, title: a.position_title || '', department: a.department || '', reports_to: a.reports_to || '', sections: sections, order: order, omitted: omitted, meta: { provider: 'demo', model: 'demo' } };
   }
+  function demoQueueState() {
+    var rows = [], t = Date.now();
+    ['nok@hrthai.co', 'pim@factory.co.th', 'somchai@logis.co', 'aom@retail.co.th', 'ben@agency.co', 'kae@clinic.co.th', 'mint@school.ac.th'].forEach(function (e, i) {
+      rows.push({ id: 'wl' + i, email: e, name: '', company: '', status: i < 4 ? 'admitted' : 'waiting', admitted_by: i < 4 ? 'auto' : '',
+        created_at: new Date(t - (8 - i) * 3600000).toISOString(), admitted_at: i < 4 ? new Date(t - (6 - i) * 3600000).toISOString() : '', signedUp: i < 2 });
+    });
+    return { mode: 'waitlist', dailyQuota: 4, rows: rows };
+  }
+  function demoQueue() {
+    var q = db.queue || (db.queue = demoQueueState());
+    var waiting = q.rows.filter(function (r) { return r.status === 'waiting'; });
+    var auto = q.rows.filter(function (r) { return r.admitted_by === 'auto'; }).length;
+    return { mode: q.mode, dailyQuota: q.dailyQuota, admittedToday: auto, remainingToday: Math.max(0, q.dailyQuota - auto), waiting: waiting.length, mailQuota: 96,
+      rows: q.rows.map(function (r) { return Object.assign({}, r, { position: r.status === 'waiting' ? waiting.indexOf(r) + 1 : null }); }).reverse() };
+  }
+  function demoInquiries() {
+    db.inquiries = db.inquiries || [{ id: 'iq1', created_at: now(), company: 'บริษัท ตัวอย่างอุตสาหกรรม จำกัด', name: 'คุณสมศรี', email: 'hrd@example.co.th', phone: '02-000-0000', positions: '450', message: 'อยากทำ JD ทั้งโรงงานพร้อม workshop', status: 'new' }];
+    return { rows: db.inquiries, notify: 'อีเมลเจ้าของ (ตั้งในระบบจริง)', newCount: db.inquiries.filter(function (r) { return r.status === 'new'; }).length };
+  }
   function demoAiSettings() {
     var L = { google: 'Google Gemini', openai: 'OpenAI', anthropic: 'Anthropic Claude' };
     var P = { google: 'AIza', openai: 'sk-', anthropic: 'sk-ant-' };
@@ -447,6 +466,22 @@
       db.versions.push({ positionId: p.positionId, version: last.version + 1, tier: last.tier, jd: jd, created_at: now() });
       return { version: last.version + 1, jd: jd };
     },
+    // Demo of the soft-launch queue and company-wide requests (admin tabs).
+    'admin.waitlist': function () { return demoQueue(); },
+    'admin.waitlist.config': function (p) {
+      var q = db.queue || (db.queue = demoQueueState());
+      if (p.mode) q.mode = p.mode === 'waitlist' ? 'waitlist' : 'open';
+      if (p.dailyQuota !== undefined) q.dailyQuota = Math.max(0, Math.floor(Number(p.dailyQuota) || 0));
+      return demoQueue();
+    },
+    'admin.waitlist.admit': function (p) {
+      var q = db.queue || (db.queue = demoQueueState());
+      q.rows.forEach(function (r) { if ((p.ids || []).indexOf(r.id) >= 0 && r.status === 'waiting') { r.status = 'admitted'; r.admitted_by = 'admin'; r.admitted_at = now(); } });
+      return demoQueue();
+    },
+    'admin.waitlist.remove': function (p) { var q = db.queue || (db.queue = demoQueueState()); q.rows = q.rows.filter(function (r) { return r.id !== p.id; }); return demoQueue(); },
+    'admin.inquiries': function () { return demoInquiries(); },
+    'admin.inquiry.update': function (p) { demoInquiries().rows.forEach(function (r) { if (r.id === p.id && p.status) r.status = p.status; }); return demoInquiries(); },
     // Demo of the consistency check: a fixed example result (the real one comes from AI reading the whole JD).
     'jd.quality': function (p) {
       var vs = db.versions.filter(function (v) { return v.positionId === p.positionId; });

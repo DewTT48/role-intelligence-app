@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="assets/landing.css?v=20261124g">
+<link rel="stylesheet" href="assets/landing.css?v=20261125a">
 </head>
 <body>
 
@@ -28,7 +28,7 @@
     </nav>
     <div class="nav-cta">
       <a class="link" href="app/#signin">เข้าสู่ระบบ</a>
-      <a class="btn btn-pink" href="app/#signin">เริ่มสร้าง JD ฟรี <span aria-hidden="true">→</span></a>
+      <a class="btn btn-pink js-cta" href="app/#signin">เริ่มสร้าง JD ฟรี <span aria-hidden="true">→</span></a>
     </div>
   </div>
 </header>
@@ -44,7 +44,7 @@
         </h1>
         <p class="hero-lead">เลิกรอแบบฟอร์มที่ไม่มีใครกรอก นั่งคุยกับหัวหน้างานแล้วตอบคำถามไปด้วยกัน ระบบเขียน JD ให้ครบทุกหมวดในไม่กี่นาที แก้ได้ ดาวน์โหลดเป็น Word ได้ จะเป็นภาษาไทยหรืออังกฤษก็ได้ด้วย</p>
         <div class="hero-actions">
-          <a class="btn btn-pink btn-lg" href="app/#signin">เริ่มสร้าง JD ฟรี <span aria-hidden="true">→</span></a>
+          <a class="btn btn-pink btn-lg js-cta" href="app/#signin">เริ่มสร้าง JD ฟรี <span aria-hidden="true">→</span></a>
           <a class="btn btn-ghost btn-lg" href="#try">ดูตัวอย่างก่อน</a>
         </div>
         <ul class="trust">
@@ -189,6 +189,12 @@
         <li><span class="step-no">02</span><h3>ตอบคำถามเรื่องงาน</h3><p>ทำเองก็ได้ หรือนั่งคุยกับหัวหน้างานแล้วตอบไปด้วยกันก็ได้</p></li>
         <li><span class="step-no">03</span><h3>อ่าน แก้ แล้วนำไปใช้</h3><p>แก้ในหน้าจอได้ทุกหมวด แล้วดาวน์โหลดเป็นไฟล์ Word</p></li>
       </ol>
+      <div class="video" data-yt="wpcEwquhLlU">
+        <button type="button" class="video-play" aria-label="เล่นวิดีโอวิธีใช้งาน 2 นาที 40 วินาที">
+          <img src="https://i.ytimg.com/vi/wpcEwquhLlU/hqdefault.jpg" alt="" loading="lazy">
+          <span class="video-btn" aria-hidden="true">▶</span><span class="video-label">ดูวิธีใช้งาน · 2:40</span>
+        </button>
+      </div>
       <div class="principle">
         <p class="big">AI ช่วยเขียน<br><span>คุณเป็นคนตัดสินใจ</span></p>
         <ul>
@@ -228,9 +234,23 @@
         <div class="pack best"><em>ทั้งบริษัท</em><b>100</b><span>เครดิต</span><strong>9,900 ฿</strong><small>Role Blueprint 25 ตำแหน่ง · ~99 ฿ ต่อเครดิต</small></div>
       </div>
       <div class="ent">
-        <div><b>มี 300 ตำแหน่งขึ้นไป หรืออยากให้ทีมเราช่วยทำ</b><span>เราคิดราคาตามจำนวนตำแหน่ง พร้อม workshop และช่วยวาง Competency ของบริษัท · ถ้าต้องการให้หลายฝ่ายตรวจและอนุมัติในระบบ ดู <a href="https://jdi.dewteerapap.com/">JDI สำหรับองค์กร</a></span></div>
-        <a class="btn btn-ghost" href="#contact">คุยกับเรา</a>
+        <div><b>มี 300 ตำแหน่งขึ้นไป หรืออยากให้ทีมเราช่วยทำ</b><span>เราคิดราคาตามจำนวนตำแหน่ง พร้อม workshop และช่วยวาง Competency ของบริษัท · ถ้าต้องการให้หลายฝ่ายตรวจและอนุมัติในระบบ ส่งคำขอไว้ได้เลย</span></div>
+        <a class="btn btn-ghost js-org-open" href="#org-contact">ส่งคำขอใช้ทั้งองค์กร</a>
       </div>
+      <form class="org-form" id="org-contact" hidden novalidate>
+        <h3>ขอใช้ Role Intelligence ทั้งองค์กร</h3>
+        <p class="muted">กรอกไว้ แล้วทีมงานจะติดต่อกลับโดยเร็ว</p>
+        <div class="org-grid">
+          <label>ชื่อผู้ติดต่อ *<input name="name" autocomplete="name" required maxlength="80"></label>
+          <label>บริษัท *<input name="company" autocomplete="organization" required maxlength="120"></label>
+          <label>อีเมล *<input name="email" type="email" autocomplete="email" required maxlength="120"></label>
+          <label>เบอร์โทร<input name="phone" type="tel" autocomplete="tel" maxlength="30"></label>
+          <label>จำนวนตำแหน่งโดยประมาณ<input name="positions" inputmode="numeric" maxlength="30" placeholder="เช่น 300"></label>
+          <label class="hp" aria-hidden="true">เว็บไซต์<input name="website" tabindex="-1" autocomplete="off"></label>
+          <label class="wide">อยากให้เราช่วยเรื่องอะไร<textarea name="message" rows="3" maxlength="2000"></textarea></label>
+        </div>
+        <div class="org-foot"><button class="btn btn-pink" type="submit">ส่งคำขอ</button><span class="form-msg" role="status" aria-live="polite"></span></div>
+      </form>
       <p class="packs-note">ราคารวม VAT · เครดิตใช้ได้ 12 เดือน · ออกใบกำกับภาษีเต็มรูปได้ · หัก ณ ที่จ่ายได้ · โอนเข้าบัญชีบริษัท</p>
     </div>
   </section>
@@ -255,13 +275,38 @@
     </div>
   </section>
 
+  <!-- ============ soft launch queue (shown by launch.js when the backend is in waitlist mode) ============ -->
+  <section class="sec join" id="join" hidden>
+    <div class="wrap join-in">
+      <div>
+        <p class="kicker">เปิดให้ใช้รอบแรก</p>
+        <h2 class="sec-title">ทยอยเปิดทุกวัน<br>ลงชื่อก่อน ได้คิวก่อน</h2>
+        <p class="join-lead">เราเปิดให้ใช้วันละไม่กี่ราย เพื่อดูแลทุกบริษัทที่เข้ามาให้ได้ JD ที่ดีจริง ถึงคิวแล้วเราจะส่งอีเมลแจ้ง พร้อมเครดิตฟรี 3 เครดิต</p>
+        <div class="join-stats" aria-live="polite">
+          <div><span>วันนี้เปิด</span><b class="js-quota">–</b><span>ที่</span></div>
+          <div class="hot"><span>เหลือ</span><b class="js-left">–</b><span>ที่</span></div>
+          <div><span>รอคิวอยู่</span><b class="js-waiting">–</b><span>คน</span></div>
+        </div>
+      </div>
+      <form class="join-form" novalidate>
+        <label>อีเมลที่ใช้ทำงาน *<input name="email" type="email" autocomplete="email" required maxlength="120"></label>
+        <label>ชื่อ<input name="name" autocomplete="name" maxlength="80"></label>
+        <label>บริษัท<input name="company" autocomplete="organization" maxlength="120"></label>
+        <label class="hp" aria-hidden="true">เว็บไซต์<input name="website" tabindex="-1" autocomplete="off"></label>
+        <button class="btn btn-pink btn-lg" type="submit">ลงชื่อขอใช้งาน</button>
+        <div class="form-msg" role="status" aria-live="polite"></div>
+        <p class="muted small">มีบัญชีแล้ว? <a href="app/#signin">เข้าสู่ระบบ</a></p>
+      </form>
+    </div>
+  </section>
+
   <!-- ============ 10. final CTA ============ -->
   <section class="final" id="contact">
     <img src="assets/img/final.webp" alt="" loading="lazy">
     <div class="wrap final-in">
       <h2><span>ลองสร้าง JD แรกวันนี้<i class="dot"></i></span><span class="sub">เลือกตำแหน่งที่ค้างไว้นานที่สุดก่อนก็ได้</span></h2>
       <div class="final-cta">
-        <a class="btn btn-pink btn-lg" href="app/#signin">เริ่มสร้าง JD ฟรี <span aria-hidden="true">→</span></a>
+        <a class="btn btn-pink btn-lg js-cta" href="app/#signin">เริ่มสร้าง JD ฟรี <span aria-hidden="true">→</span></a>
         <p>ไม่ต้องใช้บัตร · สมัครใหม่รับฟรี 3 เครดิต</p>
       </div>
     </div>
@@ -271,7 +316,7 @@
 <footer class="foot">
   <div class="wrap foot-in">
     <div><span class="wm">RI<i></i></span><p>Role Intelligence · Blueprint your roles</p><p class="muted">ให้บริการโดย บริษัท ภูมิใจ ดีใจ จำกัด · 103 ม.13 ต.ป่าอ้อดอนชัย อ.เมือง จ.เชียงราย 57000 · <a href="mailto:dewteerapap@seederschool.com">dewteerapap@seederschool.com</a></p></div>
-    <nav aria-label="ลิงก์ท้ายหน้า"><a href="terms.html">ข้อตกลงการใช้งาน</a><a href="refund.html">นโยบายคืนเงินและเครดิต</a><a href="privacy.html">นโยบายความเป็นส่วนตัว</a><a href="https://jdi.dewteerapap.com/">JDI สำหรับองค์กร</a><a href="app/#signin">เข้าสู่ระบบ</a></nav>
+    <nav aria-label="ลิงก์ท้ายหน้า"><a href="terms.html">ข้อตกลงการใช้งาน</a><a href="refund.html">นโยบายคืนเงินและเครดิต</a><a href="privacy.html">นโยบายความเป็นส่วนตัว</a><a href="#org-contact" class="js-org-open">ใช้ทั้งองค์กร</a><a href="app/#signin">เข้าสู่ระบบ</a></nav>
   </div>
   <p class="wrap photo-credit">ภาพประกอบจาก Unsplash</p>
 </footer>
@@ -279,5 +324,7 @@
 <script src="assets/thai-wrap.js?v=20261123n"></script>
 <script src="assets/sample-jds.js?v=20261123b"></script>
 <script src="assets/landing.js?v=20261123h"></script>
+<script src="config.js?v=20261125a"></script>
+<script src="assets/launch.js?v=20261125b"></script>
 </body>
 </html>
