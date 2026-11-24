@@ -695,7 +695,9 @@ html.poster .lang-opt.on { background: var(--indigo); border-color: var(--indigo
 .quality { margin: 0; }
 .quality:empty { display: none; }
 .quality-list { display: grid; gap: 10px; }
-.quality-list ol { margin: 0; padding-left: 22px; display: grid; gap: 12px; }
+.quality-list ol { margin: 0; padding: 0; list-style: none; counter-reset: qn; display: grid; gap: 12px; }
+.quality-list li { counter-increment: qn; position: relative; padding-left: 24px; }
+.quality-list li::before { content: counter(qn) "."; position: absolute; left: 0; top: 0; font-weight: 700; }
 .quality-list li > span { display: block; }
 .quality-fix { margin-top: 2px; opacity: .85; }
 .quality-secs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
