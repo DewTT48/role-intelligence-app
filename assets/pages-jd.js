@@ -34,6 +34,13 @@
       factor: 'Evaluation Factor', hrArea: 'HR Area', howTo: 'How to Use', verify: 'What to Verify', reportsTo: 'Reports to ', omitted: 'Sections not written yet because information is missing: ' }
   };
   var D = DOC.th;
+  /** hr_area comes from the AI as a code (job_posting…): Thai label, or the code in words for English JDs. */
+  var HR_AREA = { job_posting: 'ประกาศรับสมัคร', recruitment: 'สรรหาคัดเลือก', screening: 'คัดกรองผู้สมัคร', interview: 'สัมภาษณ์', onboarding: 'ปฐมนิเทศ',
+    probation_goals: 'เป้าหมายช่วงทดลองงาน', probation: 'ช่วงทดลองงาน', performance: 'ประเมินผลงาน', performance_management: 'ประเมินผลงาน',
+    kpi: 'ตัวชี้วัด (KPI)', kpi_competency: 'KPI และ Competency', competency: 'Competency', training: 'ฝึกอบรม', development: 'พัฒนาบุคลากร',
+    training_development: 'ฝึกอบรมและพัฒนา', job_evaluation: 'ประเมินค่างาน', job_evaluation_preparation: 'เตรียมข้อมูลประเมินค่างาน',
+    compensation: 'ค่าตอบแทน', career_path: 'เส้นทางอาชีพ', succession: 'วางแผนสืบทอดตำแหน่ง', succession_planning: 'วางแผนสืบทอดตำแหน่ง' };
+  function hrArea_(c) { var k = String(c || '').trim(); return (D === DOC.th && HR_AREA[k.toLowerCase()]) || (/^[a-z_]+$/.test(k) ? (k.charAt(0).toUpperCase() + k.slice(1)).replace(/_/g, ' ') : k); }
   function kv(pairs) { return table([D.topic, D.detail], pairs); }
   function list(items) { return h('ol.jd-list', {}, (items || []).map(function (x) { return h('li', { text: x }); })); }
 
@@ -55,7 +62,7 @@
     },
     job_evaluation_information_summary: function (v) { return table([D.factor, D.detail], DIM.map(function (d) { return [d[1], v[d[0]]]; })); },
     review_checklist: list,
-    hr_usage_guidance: function (v) { return table([D.hrArea, D.howTo, D.verify], v.map(function (x) { return [x.hr_area, x.application_guidance, x.validation_point]; })); },
+    hr_usage_guidance: function (v) { return table([D.hrArea, D.howTo, D.verify], v.map(function (x) { return [hrArea_(x.hr_area), x.application_guidance, x.validation_point]; })); },
     human_validation_points: list
   };
 
