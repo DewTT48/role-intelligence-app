@@ -471,7 +471,7 @@ textarea.grow:focus, .bullet-edit input:focus, .edit-table select:focus { border
 p, li, td, .tip-text, .small, .muted { text-wrap: pretty; } /* no lone word on the last line */
 
 /* ---------------- brand: "RI." wordmark (Anton, square magenta full stop) ---------------- */
-:root { --font-display: Anton, Impact, 'Arial Narrow', sans-serif; --mark-pink: #E0187A; }
+:root { --font-display: Anton, 'Chakra Petch', Impact, 'Arial Narrow', sans-serif; --mark-pink: #E0187A; }
 .brand { flex-direction: column; align-items: flex-start; gap: 6px; padding: 0 8px; }
 .wordmark { font-family: var(--font-display); font-weight: 400; font-size: 46px; line-height: .86; letter-spacing: -.01em; color: var(--blue); display: inline-flex; align-items: flex-end; }
 .wm-dot { display: inline-block; width: .16em; height: .16em; background: var(--mark-pink); margin-left: .05em; margin-bottom: .02em; }

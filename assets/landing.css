@@ -5,7 +5,7 @@
   --indigo: #30388C; --indigo-ink: #28307F; --indigo-soft: #EFF0FF;
   --hot: #FF4FA3; --hot-ink: #C92C7D; --hot-soft: #FFF0F7; --green: #1F6B48; --green-soft: #EDF8F2;
   --font: 'Chakra Petch', 'IBM Plex Sans Thai', system-ui, sans-serif;
-  --display: Anton, Impact, 'Arial Narrow', sans-serif;
+  --display: Anton, 'Chakra Petch', Impact, 'Arial Narrow', sans-serif;   /* Thai has no Anton glyphs: Chakra Petch, never a system font */
   --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
   --r: 4px; --hard: 5px 5px 0 #080808;
 }
@@ -147,7 +147,7 @@ p, li { text-wrap: pretty; }
 .ba > div:not(.arrow) { border: 1px solid #080808; border-radius: var(--r); padding: 26px; display: flex; flex-direction: column; gap: 10px; }
 .before { background: #EBECE7; }
 .after { background: #fff; box-shadow: 10px 10px 0 var(--indigo); }
-.ba-label { font-family: var(--display); font-size: 30px; text-transform: uppercase; line-height: 1; margin-bottom: 6px; }
+.ba-label { font-family: var(--font); font-weight: 700; font-size: 28px; line-height: 1.1; margin-bottom: 6px; }
 .before .ba-label { color: var(--muted); } .after .ba-label { color: var(--indigo); }
 .file { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 2px 12px; align-items: center; background: #fff; border: 1px dashed #8E908B; border-radius: var(--r); padding: 10px 12px; transform: rotate(-.6deg); }
 .file:nth-child(odd) { transform: rotate(.7deg); }
@@ -210,6 +210,7 @@ p, li { text-wrap: pretty; }
 .tag.pink { background: var(--hot); }
 .price { font-family: var(--display); font-size: 64px; line-height: 1; margin-top: 16px; }
 .price small { font-family: var(--font); font-size: 18px; font-weight: 700; }
+.price.price-th { font-family: var(--font); font-weight: 700; font-size: 58px; }
 .per { color: var(--muted); }
 .fit { margin-top: 12px; padding: 10px 12px; background: var(--bg); border-radius: var(--r); font-size: 14px; font-weight: 600; }
 .tier ul { margin: 14px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; font-size: 15px; }
