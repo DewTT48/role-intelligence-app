@@ -691,3 +691,13 @@ html.poster .lang-opt.on { background: var(--indigo); border-color: var(--indigo
 /* admin: old data shown while the fresh copy loads */
 .refreshing { opacity: .55; transition: opacity .2s; }
 .refreshing::before { content: 'กำลังอัปเดตข้อมูลล่าสุด…'; display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+/* JD consistency check box */
+.quality { margin: 0; }
+.quality:empty { display: none; }
+.quality-list { display: grid; gap: 10px; }
+.quality-list ol { margin: 0; padding-left: 22px; display: grid; gap: 12px; }
+.quality-list li > span { display: block; }
+.quality-fix { margin-top: 2px; opacity: .85; }
+.quality-secs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.quality-sec { font-size: 13px; padding: 4px 10px; cursor: pointer; }
+.jd-sec { scroll-margin-top: 16px; }

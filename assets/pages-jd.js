@@ -420,6 +420,51 @@
       }
       app.leaveGuard = null;
 
+      // Consistency check (AI reads the whole JD next to the answers; it never changes the JD).
+      var qualityBox = v.latest ? h('div.quality', { role: 'status', 'aria-live': 'polite' }) : null;
+      function sectionLabel(k) { var i = jd.order.indexOf(k); return '§' + ('0' + (i + 1)).slice(-2) + ' ' + (titleOf[k] || k); }
+      function goSection(k) { var el = document.getElementById('sec-' + k); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+      function drawQuality(q) {
+        if (!qualityBox) return;
+        var runBtn = function (label) {
+          var b = ui.button('small-btn', label, function () {
+            ui.busy(b, 'กำลังตรวจ… (ราว 20 วินาที)', function () { return api.call('jd.quality', { positionId: positionId, version: v.version, run: true }).then(drawQuality); })
+              .catch(function (e) { ui.toast(ui.errorText(e), 'err'); });
+          });
+          return b;
+        };
+        if (q.status === 'running') {
+          ui.mount(qualityBox, h('div.note.info.quality-wait', {}, h('span', { text: 'AI กำลังตรวจความสอดคล้องของ JD ฉบับนี้…' })));
+          setTimeout(loadQuality, 8000);
+        } else if (q.status === 'not_checked') {
+          ui.mount(qualityBox, h('div.note.info.core-nudge', {}, h('span', { text: 'แก้ JD แล้ว · ให้ AI ตรวจว่าหมวดต่าง ๆ ยังสอดคล้องกันไหม (ฟรี)' }), runBtn('ตรวจความสอดคล้อง')));
+        } else if (q.status === 'failed') {
+          ui.mount(qualityBox, h('div.note.info.core-nudge', {}, h('span', { text: 'ตรวจความสอดคล้องไม่สำเร็จ' }), runBtn('ลองอีกครั้ง')));
+        } else if (q.status === 'done' && !q.issues.length) {
+          ui.mount(qualityBox, h('div.note.ok.quality-ok', {}, h('span', { text: 'AI ตรวจความสอดคล้องแล้ว ไม่พบหมวดที่ขัดกัน · ยังควรอ่านทวนก่อนใช้' })));
+        } else if (q.status === 'done') {
+          ui.mount(qualityBox, h('div.note.warn.quality-list', {},
+            h('strong', { text: 'AI พบ ' + q.issues.length + ' จุดที่ควรตรวจ' }),
+            h('ol', {}, q.issues.map(function (x) {
+              return h('li', {},
+                h('span', { text: x.problem }),
+                x.suggestion ? h('span.quality-fix', { text: 'ควรทำ: ' + x.suggestion }) : null,
+                x.sections.length ? h('span.quality-secs', {}, x.sections.map(function (k) {
+                  return h('button.chip.quality-sec', { type: 'button', onclick: function () { goSection(k); } }, sectionLabel(k));
+                })) : null);
+            })),
+            h('span.small', { text: 'AI แค่ชี้จุด ไม่ได้แก้ JD ให้ · ถ้าเห็นว่าถูกต้องอยู่แล้วก็ไม่ต้องทำอะไร · แก้แล้วกดตรวจใหม่ได้' })));
+        }
+      }
+      function loadQuality() {
+        if (!qualityBox || !document.body.contains(qualityBox)) return;
+        api.call('jd.quality', { positionId: positionId, version: v.version }).then(drawQuality, function () { ui.mount(qualityBox, null); });
+      }
+      if (qualityBox) {
+        ui.mount(qualityBox, h('div.note.info.quality-wait', {}, h('span', { text: 'AI กำลังตรวจความสอดคล้องของ JD ฉบับนี้…' })));
+        setTimeout(loadQuality, 50);
+      }
+
       ui.mount(view, [
         ui.pageHead([v.code, 'Rev. ' + v.version, new Date(v.created_at).toLocaleString('th-TH'), isEn ? 'JD ภาษาอังกฤษ' : ''].filter(Boolean).join(' · '), jd.title || 'JD', ui.tierPill(v.tier)),
         actions,
@@ -432,6 +477,7 @@
         v.latest ? nextPanel() : null,
         v.tier === 'bronze' ? ui.note('info', 'นี่คือ Role Brief สำหรับดูบนจอ ดาวน์โหลดไฟล์ Word ได้ตั้งแต่ Role Profile') : null,
         coreNudge(),
+        qualityBox,
         !onboard.seen('jd-next') ? null : h('div.edit-help', {},
           h('strong', { text: 'แก้ JD ได้ทุกหมวด' }),
           h('span', { text: 'กด "แก้" แล้วพิมพ์ในตารางได้เลย (ฟรี) แก้หลายหมวดแล้วบันทึกครั้งเดียวได้ · หรือกด "AI ช่วยแก้" แล้วบอกว่าอยากให้แก้อย่างไร · AI แก้ฟรี เหลือ ' + v.freeAiEdits +
@@ -470,7 +516,7 @@
 
       // ---------------- editing ----------------
       function sectionBlock(key, i) {
-        var box = h('section.jd-sec');
+        var box = h('section.jd-sec', { id: 'sec-' + key });
         var title = (i + 1) + '. ' + (titleOf[key] || key);
         var editable = v.latest !== false && key !== 'disclaimer_text';
         function show() {

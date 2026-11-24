@@ -447,6 +447,22 @@
       db.versions.push({ positionId: p.positionId, version: last.version + 1, tier: last.tier, jd: jd, created_at: now() });
       return { version: last.version + 1, jd: jd };
     },
+    // Demo of the consistency check: a fixed example result (the real one comes from AI reading the whole JD).
+    'jd.quality': function (p) {
+      var vs = db.versions.filter(function (v) { return v.positionId === p.positionId; });
+      var v = p.version ? vs.filter(function (x) { return Number(x.version) === Number(p.version); })[0] : vs[vs.length - 1];
+      if (!v) throw fail('NOT_FOUND', 'ยังไม่มี JD ของตำแหน่งนี้');
+      var m = v.jd.meta || {}, auto = !(m.edit_note || m.restored_from);
+      db.checks = db.checks || {};
+      var key = p.positionId + '/' + v.version;
+      if (!db.checks[key] && !auto && !p.run) return { status: 'not_checked', issues: [], auto: auto };
+      var has = function (k) { return (v.jd.order || []).indexOf(k) >= 0; };
+      db.checks[key] = db.checks[key] || [
+        { sections: ['key_indicators', 'key_responsibilities'].filter(has), problem: 'ตัวชี้วัดเรื่องอัตราการลาออก ไม่มีหน้าที่ในหมวดหน้าที่หลักที่ดูแลเรื่องการรักษาพนักงานโดยตรง', suggestion: 'เพิ่มหน้าที่ด้านการรักษาพนักงาน หรือปรับตัวชี้วัดให้ตรงกับหน้าที่ที่มี' },
+        { sections: ['people_management_responsibility', 'job_evaluation_information_summary'].filter(has), problem: 'จำนวนลูกน้องในหมวดการบริหารคน กับข้อมูลประเมินค่างาน เขียนไม่ตรงกัน', suggestion: 'ยืนยันจำนวนลูกน้องโดยตรงที่ถูกต้อง แล้วแก้ให้ตรงกันทั้งสองหมวด' }
+      ].filter(function (x) { return x.sections.length === 2; });
+      return { status: 'done', issues: db.checks[key], checkedAt: now(), version: Number(v.version), auto: auto };
+    },
     'jd.edit.ai': function (p) {
       if (!String(p.instruction || '').trim()) throw fail('NEED_INPUT', 'บอก AI ว่าอยากให้แก้อย่างไร');
       db.edits = db.edits || [];
@@ -643,7 +659,7 @@
   }
 
   function local(action, payload) {
-    var delay = action === 'jd.generate' ? 2500 : action === 'quest.suggest' ? 600 : 250;
+    var delay = action === 'jd.generate' ? 2500 : action === 'jd.quality' ? 1800 : action === 'quest.suggest' ? 600 : 250;
     return new Promise(function (resolve, reject) {
       setTimeout(function () {
         try {
