@@ -33,65 +33,35 @@
     $('.js-waiting', join).textContent = num(s.waiting);
     join.classList.toggle('full', !s.remainingToday);
   }
-  // The backend answers in 1–6 s. Until then a click on a start button waits for the answer instead of going to
-  // sign-in, and the mode seen last time is shown straight away (kept in this browser only).
-  var MODE_KEY = 'ri_launch_mode';
+  // The page starts in queue mode (index.html), so a click before the backend answers (1–6 s) is never wrong.
+  // Someone already signed in on this browser (the app keeps its token under ri.token) gets "เข้าใช้งาน" straight away;
+  // when the owner turns the queue off, the backend's answer switches the page to open sign-up.
   var ctas = $$('.js-cta');
   var head = $('.final h2 span'), note = $('.final-cta p');
-  var orig = {
-    cta: ctas.map(function (a) { return { href: a.getAttribute('href'), html: a.innerHTML }; }),
-    head: null,                         // taken when first changed: thai-wrap.js may still rewrap it before then
-    note: note ? note.textContent : null
-  };
-  function remember(mode) { try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* private window */ } }
-  function remembered() { try { return localStorage.getItem(MODE_KEY); } catch (e) { return null; } }
-
-  function waitlistMode(s) {
-    join.hidden = false;
-    paint(s);
-    ctas.forEach(function (a) {
-      a.setAttribute('href', '#join');
-      a.innerHTML = 'ลงชื่อขอใช้งาน <span aria-hidden="true">→</span>';
-    });
-    if (head) {                         // thai-wrap.js wraps the words in spans, so rebuild it and keep the pink dot
-      if (orig.head == null) orig.head = head.innerHTML;
-      var dot = head.querySelector('.dot');
-      head.textContent = 'ลงชื่อวันนี้ ได้ใช้ก่อน';
-      if (dot) head.appendChild(dot);
-    }
-    if (note) note.textContent = 'ทยอยเปิดทุกวัน · ถึงคิวรับฟรี 3 เครดิต';
+  function signedIn() { try { return !!localStorage.getItem('ri.token'); } catch (e) { return false; } }
+  function setHead(text) {              // thai-wrap.js wraps the words in spans, so rebuild it and keep the pink dot
+    if (!head) return;
+    var dot = head.querySelector('.dot');
+    head.textContent = text;
+    if (dot) head.appendChild(dot);
+  }
+  function setPage(o) {
+    join.hidden = !o.join;
+    ctas.forEach(function (a) { a.setAttribute('href', o.href); a.innerHTML = o.cta + ' <span aria-hidden="true">→</span>'; });
+    setHead(o.head);
+    if (note) note.textContent = o.note;
+  }
+  function memberMode() {
+    setPage({ join: false, href: 'app/', cta: 'เข้าใช้งาน', head: 'ทำ JD ตำแหน่งถัดไปต่อเลย', note: 'คุณเข้าสู่ระบบไว้แล้วในเบราว์เซอร์นี้' });
   }
   function openMode() {
-    join.hidden = true;
-    ctas.forEach(function (a, i) { a.setAttribute('href', orig.cta[i].href); a.innerHTML = orig.cta[i].html; });
-    if (head && orig.head != null) head.innerHTML = orig.head;
-    if (note && orig.note != null) note.textContent = orig.note;
+    setPage({ join: false, href: 'app/#signin', cta: 'เริ่มสร้าง JD ฟรี', head: 'ลองสร้าง JD แรกวันนี้', note: 'ไม่ต้องใช้บัตร · สมัครใหม่รับฟรี 3 เครดิต' });
   }
   if (join) {
-    if (remembered() === 'waitlist') waitlistMode(null);   // numbers stay "–" until the backend answers
-    var settled = false;
-    var status = call('waitlist.status').then(function (s) {
-      remember(s.mode === 'waitlist' ? 'waitlist' : 'open');
-      if (s.mode === 'waitlist') waitlistMode(s); else openMode();
-    }).catch(function () { /* page still works as before */ }).then(function () { settled = true; });
-    var timeout = new Promise(function (res) { setTimeout(res, 12000); });
-    ctas.forEach(function (a) {
-      a.addEventListener('click', function (e) {
-        if (settled) return;
-        e.preventDefault();
-        if (a.classList.contains('is-wait')) return;
-        var html = a.innerHTML;
-        a.classList.add('is-wait'); a.setAttribute('aria-busy', 'true');
-        a.textContent = 'กำลังเปิด…';
-        Promise.race([status, timeout]).then(function () {
-          a.classList.remove('is-wait'); a.removeAttribute('aria-busy');
-          if (!settled) a.innerHTML = html;          // backend too slow: carry on with what the button says
-          var href = a.getAttribute('href');
-          if (href.charAt(0) === '#') { var t = $(href); if (t) t.scrollIntoView({ behavior: 'smooth' }); history.replaceState(null, '', href); }
-          else location.href = href;
-        });
-      });
-    });
+    if (signedIn()) memberMode();
+    else call('waitlist.status').then(function (s) {
+      if (s.mode === 'waitlist') paint(s); else openMode();
+    }).catch(function () { /* stays in queue mode; the form shows its own error if the backend is down */ });
     var form = $('.join-form', join);
     form.addEventListener('submit', function (e) {
       e.preventDefault();

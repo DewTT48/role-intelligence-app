@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="assets/landing.css?v=20261125e">
+<link rel="stylesheet" href="assets/landing.css?v=20261125f">
 </head>
 <body>
 
@@ -28,7 +28,7 @@
     </nav>
     <div class="nav-cta">
       <a class="link" href="app/#signin">เข้าสู่ระบบ</a>
-      <a class="btn btn-pink js-cta" href="app/#signin">เริ่มสร้าง JD ฟรี <span aria-hidden="true">→</span></a>
+      <a class="btn btn-pink js-cta" href="#join">ลงชื่อขอใช้งาน <span aria-hidden="true">→</span></a>
     </div>
   </div>
 </header>
@@ -44,7 +44,7 @@
         </h1>
         <p class="hero-lead">เลิกรอแบบฟอร์มที่ไม่มีใครกรอก นั่งคุยกับหัวหน้างานแล้วตอบคำถามไปด้วยกัน ระบบเขียน JD ให้ครบทุกหมวดในไม่กี่นาที แก้ได้ ดาวน์โหลดเป็น Word ได้ จะเป็นภาษาไทยหรืออังกฤษก็ได้ด้วย</p>
         <div class="hero-actions">
-          <a class="btn btn-pink btn-lg js-cta" href="app/#signin">เริ่มสร้าง JD ฟรี <span aria-hidden="true">→</span></a>
+          <a class="btn btn-pink btn-lg js-cta" href="#join">ลงชื่อขอใช้งาน <span aria-hidden="true">→</span></a>
           <a class="btn btn-ghost btn-lg" href="#try">ดูตัวอย่างก่อน</a>
         </div>
         <ul class="trust">
@@ -265,8 +265,8 @@
     </div>
   </section>
 
-  <!-- ============ soft launch queue (shown by launch.js when the backend is in waitlist mode) ============ -->
-  <section class="sec join" id="join" hidden>
+  <!-- ============ soft launch queue: the page starts in queue mode; launch.js switches to open sign-up or to "เข้าใช้งาน" for people already signed in ============ -->
+  <section class="sec join" id="join">
     <div class="wrap join-in">
       <div>
         <p class="kicker">เปิดให้ใช้รอบแรก</p>
@@ -294,10 +294,10 @@
   <section class="final" id="contact">
     <img src="assets/img/final.webp" alt="" loading="lazy">
     <div class="wrap final-in">
-      <h2><span>ลองสร้าง JD แรกวันนี้<i class="dot"></i></span><span class="sub">เลือกตำแหน่งที่ค้างไว้นานที่สุดก่อนก็ได้</span></h2>
+      <h2><span>ลงชื่อวันนี้ ได้ใช้ก่อน<i class="dot"></i></span><span class="sub">เลือกตำแหน่งที่ค้างไว้นานที่สุดก่อนก็ได้</span></h2>
       <div class="final-cta">
-        <a class="btn btn-pink btn-lg js-cta" href="app/#signin">เริ่มสร้าง JD ฟรี <span aria-hidden="true">→</span></a>
-        <p>ไม่ต้องใช้บัตร · สมัครใหม่รับฟรี 3 เครดิต</p>
+        <a class="btn btn-pink btn-lg js-cta" href="#join">ลงชื่อขอใช้งาน <span aria-hidden="true">→</span></a>
+        <p>ทยอยเปิดทุกวัน · ถึงคิวรับฟรี 3 เครดิต</p>
       </div>
     </div>
   </section>
@@ -339,6 +339,6 @@
 <script src="assets/sample-jds.js?v=20261123b"></script>
 <script src="assets/landing.js?v=20261123h"></script>
 <script src="config.js?v=20261125a"></script>
-<script src="assets/launch.js?v=20261125e"></script>
+<script src="assets/launch.js?v=20261125f"></script>
 </body>
 </html>

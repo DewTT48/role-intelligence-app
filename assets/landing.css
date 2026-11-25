@@ -467,6 +467,3 @@ dialog.pop-video { width: min(1100px, calc(100vw - 32px)); background: #080808; 
 .pop-close { position: absolute; right: 10px; top: 8px; width: 40px; height: 40px; border: 1px solid #080808; border-radius: var(--r); background: #fff; font-size: 26px; line-height: 1; cursor: pointer; z-index: 2; }
 .pop-video .pop-close { right: 0; top: -50px; background: var(--hot); }
 @media (max-width: 900px) { .join-in { grid-template-columns: 1fr; gap: 32px; } .org-grid { grid-template-columns: 1fr; } .join-stats b { font-size: 40px; } }
-
-/* start button waiting for the queue status (launch.js) */
-.js-cta.is-wait { cursor: progress; opacity: .75; }
