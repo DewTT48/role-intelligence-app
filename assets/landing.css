@@ -223,6 +223,22 @@ p, li { text-wrap: pretty; }
 .pack.best { border-style: solid; background: var(--hot-soft); }
 .pack em { position: absolute; top: -12px; left: 18px; font-style: normal; font-size: 12px; font-weight: 700; background: var(--hot); border: 1px solid #080808; padding: 1px 8px; }
 .packs-note { margin-top: 18px; font-size: 14px; color: var(--muted); }
+/* pricing: free credits to start (once per taxpayer id) and the launch promo on the packs */
+.free-start { display: grid; grid-template-columns: auto 1fr; gap: 26px; align-items: center; margin-top: 30px; padding: 22px 26px; background: var(--indigo); color: #fff; border: 1px solid #080808; border-radius: var(--r); box-shadow: 6px 6px 0 #080808; }
+.free-num { display: flex; align-items: flex-end; gap: 8px; margin: 0; }
+.free-num b { font-family: var(--display); font-weight: 400; font-size: 76px; line-height: .85; color: var(--hot); }
+.free-num .fn { font-size: 15px; font-weight: 700; line-height: 1.25; }
+.free-head { margin: 0 0 8px; font-size: 21px; font-weight: 700; }
+.free-steps { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.free-steps .fs { font-size: 14px; padding: 4px 10px; border: 1px solid rgba(255,255,255,.45); border-radius: var(--r); }
+.free-steps b { color: var(--hot); }
+.free-note { margin: 0; font-size: 14px; opacity: .85; line-height: 1.7; }
+.promo-head { margin: 30px 0 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.promo-tag { background: var(--hot); color: #080808; border: 1px solid #080808; box-shadow: 3px 3px 0 #080808; padding: 2px 10px; font-size: 14px; }
+.promo-head + .packs { margin-top: 22px; }
+.pack .promo { grid-column: 1 / -1; font-style: normal; font-size: 13px; font-weight: 700; color: #080808; background: var(--hot-soft); border-left: 3px solid var(--hot); padding: 3px 8px; margin-top: 8px; justify-self: start; }
+.pack.best .promo { background: #fff; }
+@media (max-width: 600px) { .free-start { grid-template-columns: 1fr; gap: 12px; padding: 18px; } .free-num b { font-size: 60px; } }
 @media (max-width: 900px) { .tiers, .packs { grid-template-columns: 1fr; } }
 
 /* ============ FAQ ============ */
