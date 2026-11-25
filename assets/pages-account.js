@@ -137,7 +137,7 @@
           }
           if ((r.me.org.core || []).length) { app.go('#quest'); return; }
           ui.mount(msg, null);
-          drawSet('core');
+          drawSet('core'); drawSet('leadership');   // their "+1 credit" notes depend on the taxpayer id just saved
           sets.core.box.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
       }).catch(function (e) { ui.mount(msg, ui.note('err', ui.errorText(e))); });
