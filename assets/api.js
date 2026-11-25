@@ -105,8 +105,27 @@
     return { steps: { company: complete(), core: !!(db.org.core || []).length, leadership: !!(db.org.leadership || []).length,
       firstJd: db.versions.length > 0, firstWord: !!db.wordDone }, prefs: JSON.parse(JSON.stringify(db.prefs)) };
   }
+  // Company bonuses once per taxpayer id (backend CompanyBonus.js). In demo mode 0107553000182 counts as "already used by another company".
+  var DEMO_TAKEN_TAX_ID = '0107553000182';
+  function bonusStatus() {
+    var has = function (a) { return db.ledger.some(function (r) { return r.action === a; }); };
+    var paid = { company: has('company_profile_bonus'), core: has('core_competency_bonus'), leadership: has('leadership_competency_bonus') };
+    var dup = !!db.billing && db.billing.taxId === DEMO_TAKEN_TAX_ID;
+    return { hasTaxId: !!db.billing, duplicate: dup, paid: paid, left: dup ? 0 : (paid.company ? 0 : 2) + (paid.core ? 0 : 1) + (paid.leadership ? 0 : 1) };
+  }
+  function grantDemo() {
+    var st = bonusStatus(), total = 0;
+    if (!st.hasTaxId || st.duplicate) return 0;
+    [['company_profile_bonus', 2, 'โบนัสกรอกข้อมูลบริษัท', complete()],
+     ['core_competency_bonus', 1, 'โบนัสกำหนด Core Competency ของบริษัท', !!(db.org.core || []).length],
+     ['leadership_competency_bonus', 1, 'โบนัสกำหนด Leadership Competency ของบริษัท', !!(db.org.leadership || []).length]].forEach(function (x) {
+      if (!x[3] || db.ledger.some(function (r) { return r.action === x[0]; })) return;
+      db.ledger.push({ action: x[0], amount: x[1], note: x[2], at: now() }); total += x[1];
+    });
+    return total;
+  }
   function me() {
-    return { user: db.user, org: Object.assign({ complete: complete(), core: [], leadership: [], competencyLimits: { core: demoLimits('core'), leadership: demoLimits('leadership') } }, db.org),
+    return { user: db.user, org: Object.assign({ complete: complete(), bonus: bonusStatus(), billing: db.billing || null, core: [], leadership: [], competencyLimits: { core: demoLimits('core'), leadership: demoLimits('leadership') } }, db.org),
       credits: { balance: balance(), freeBronzeLeft: Math.max(0, FREE - bronzeUsed()), costs: D.costs, packs: D.packs, pricing: D.pricing },
       onboarding: onboarding(), hasSample: !!db.sample,
       isFinance: ((db.paySet || {}).financeEmails || []).indexOf(db.user && db.user.email) >= 0 };
@@ -204,12 +223,12 @@
     'auth.verifyCode': function (p) {
       if (String(p.code).trim() !== '123456') throw fail('CODE_WRONG', 'รหัสไม่ถูกต้อง (โหมดตัวอย่างใช้ 123456)');
       var isNew = !db.user;
-      if (isNew) { db.user = { id: 'usr_demo', email: p.email, display_name: p.email.split('@')[0], role: 'admin' }; db.ledger.push({ action: 'signup_bonus', amount: 3, note: 'เครดิตฟรีเมื่อสมัคร', at: now() }); }
+      if (isNew) { db.user = { id: 'usr_demo', email: p.email, display_name: p.email.split('@')[0], role: 'admin' }; db.ledger.push({ action: 'signup_bonus', amount: 2, note: 'เครดิตฟรีเมื่อสมัคร', at: now() }); }
       return { token: 'demo-token', isNew: isNew, me: me() };
     },
     // ---- payments (demo) ----
     'pay.config': function () { return demoPayConfig(); },
-    'billing.save': function (p) { db.billing = demoBilling(p); return db.billing; },
+    'billing.save': function (p) { db.billing = demoBilling(p); var out = JSON.parse(JSON.stringify(db.billing)); out.bonus = grantDemo(); out.duplicate = bonusStatus().duplicate; return out; },
     'pay.order': function (p) {
       var s = db.paySet || {};
       if (!s.enabled) throw fail('PAY_OFF', 'ยังไม่เปิดรับชำระเงิน ติดต่อผู้ดูแลระบบ');
@@ -275,11 +294,10 @@
       return onboarding();
     },
     'org.update': function (p) {
-      var was = complete();
       ['name', 'business_type', 'main_goal', 'code_prefix', 'jd_lang'].forEach(function (k) { if (p[k] !== undefined) db.org[k] = String(p[k]).trim(); });
-      var bonus = 0;
-      if (!was && complete() && !db.ledger.some(function (r) { return r.action === 'company_profile_bonus'; })) { db.ledger.push({ action: 'company_profile_bonus', amount: 1, note: 'โบนัสกรอกข้อมูลบริษัท', at: now() }); bonus = 1; }
-      return { bonus: bonus, me: me() };
+      var b = p.billing;
+      if (b && [b.name, b.taxId, b.address].some(function (x) { return String(x || '').trim(); })) db.billing = demoBilling(b);
+      return { bonus: grantDemo(), me: me() };
     },
     'org.competency.suggest': function (p) {
       if (!db.org.business_type) throw fail('NEED_INPUT', 'กรอก "ธุรกิจทำอะไร" ก่อน AI จึงช่วยให้ตรงกับบริษัทได้');
@@ -309,9 +327,7 @@
       var bad = items.filter(function (c) { return !c.definition || !c.behavioral_indicators; })[0];
       if (bad) throw fail('BAD_VALUE', 'ใส่คำนิยามและตัวอย่างพฤติกรรมของ "' + bad.competency + '" ด้วย');
       db.org[kind] = items;
-      var action = kind + '_competency_bonus';
-      var bonus = 0;
-      if (!db.ledger.some(function (r) { return r.action === action; })) { db.ledger.push({ action: action, amount: 1, note: 'โบนัสกำหนด ' + (kind === 'core' ? 'Core' : 'Leadership') + ' Competency ของบริษัท', at: now() }); bonus = 1; }
+      var bonus = grantDemo();
       return { bonus: bonus, items: items, me: me() };
     },
     'jd.competency.apply': function (p) {
@@ -543,18 +559,20 @@
     'admin.prices.refresh': function () { db.pricesFetched = now(); return demoCost(); },
     'admin.orgs': function (p) {
       var q = String(p.q || '').toLowerCase();
+      var st = bonusStatus();
       var rows = [{ id: db.org.id, name: db.org.name || '', business_type: db.org.business_type || '', created_at: now(),
+        taxId: db.billing ? db.billing.taxId : '', legalName: db.billing ? db.billing.name : '', taxType: db.billing ? db.billing.type : '', taxDuplicate: st.duplicate, taxShared: st.duplicate,
         users: [{ id: 'usr_demo', email: (db.user || {}).email || 'demo@example.com', role: 'admin', status: 'active' }], balance: balance(),
         positions: db.positions.length, jds: db.positions.filter(function (x) { return db.versions.some(function (v) { return v.positionId === x.id; }); }).length, last_login_at: now() }]
         .concat((db.demoOrgs = db.demoOrgs || [
-          { id: 'org_a', name: 'ร้านตัวอย่าง ก', business_type: 'ค้าปลีกเครื่องสำอาง', created_at: '2026-11-20T03:00:00Z', users: [{ id: 'u_a', email: 'hr@shop-a.example', role: 'owner', status: 'active', deleteRequestedAt: '2026-11-22T05:00:00Z', deleteReason: 'ปิดกิจการ' }], balance: 5, positions: 3, jds: 2, last_login_at: '2026-11-22T02:10:00Z' },
+          { id: 'org_a', name: 'ร้านตัวอย่าง ก', business_type: 'ค้าปลีกเครื่องสำอาง', created_at: '2026-11-20T03:00:00Z', taxId: '0107553000182', legalName: 'บริษัท ตัวอย่าง ก จำกัด', taxType: 'company', taxShared: true, users: [{ id: 'u_a', email: 'hr@shop-a.example', role: 'owner', status: 'active', deleteRequestedAt: '2026-11-22T05:00:00Z', deleteReason: 'ปิดกิจการ' }], balance: 5, positions: 3, jds: 2, last_login_at: '2026-11-22T02:10:00Z' },
           { id: 'org_b', name: '', business_type: '', created_at: '2026-11-21T09:00:00Z', users: [{ id: 'u_b', email: 'owner@shop-b.example', role: 'owner', status: 'active' }], balance: 3, positions: 0, jds: 0, last_login_at: '2026-11-21T09:00:00Z' }]));
-      rows = rows.filter(function (r) { return !q || r.name.toLowerCase().indexOf(q) >= 0 || r.users.some(function (u) { return u.email.indexOf(q) >= 0; }); });
+      rows = rows.filter(function (r) { return !q || r.name.toLowerCase().indexOf(q) >= 0 || String(r.taxId || '').indexOf(q) >= 0 || r.users.some(function (u) { return u.email.indexOf(q) >= 0; }); });
       return { total: rows.length, rows: rows };
     },
     'admin.org.ledger': function (p) {
       if (p.orgId === db.org.id) return db.ledger.slice().reverse().map(function (r) { return { action: r.action, amount: r.amount, note: r.note, created_at: r.at }; });
-      return [{ action: 'signup_bonus', amount: 3, note: 'เครดิตฟรีเมื่อสมัคร', created_at: '2026-11-20T03:00:00Z' }];
+      return [{ action: 'signup_bonus', amount: 2, note: 'เครดิตฟรีเมื่อสมัคร', created_at: '2026-11-20T03:00:00Z' }];
     },
     'admin.credits.adjust': function (p) {
       var amount = Math.round(Number(p.amount) * 10) / 10;

@@ -11,7 +11,7 @@
   // ---------------- 1. welcome page (once, right after the first sign-in) ----------------
   window.pages.welcome = function (view) {
     var s = ob().steps;
-    var bonusLeft = ['company', 'core', 'leadership'].filter(function (k) { return !s[k]; }).length;
+    var bonusLeft = (app.me.org.bonus || {}).left || 0;
     var credits = app.me.credits || {};
     function step(no, title, meta, body, extra) {
       return h('li.welcome-step', {},
@@ -33,7 +33,7 @@
         h('a.video-link', { href: app.VIDEO_URL, target: '_blank', rel: 'noopener' }, h('span.video-link-play', { 'aria-hidden': 'true', text: '▶' }), 'ดูวิธีใช้งาน 2:40 นาที (YouTube)'),
         h('p', { text: 'ไม่ต้องเขียนเองทั้งหมด ตอบคำถามทีละข้อ AI เสนอตัวเลือกให้กดเลือก แล้วระบบเขียน JD ให้' })),
       h('ol.welcome-steps', {},
-        step(1, 'บอกเรื่องบริษัท', '3 คำถาม · 1 นาที · +1 เครดิต', 'ช่วยให้ AI เขียนให้ตรงกับธุรกิจของคุณ ชื่อบริษัทไม่ถูกส่งให้ AI'),
+        step(1, 'บอกเรื่องบริษัท', '3 คำถาม + ข้อมูลใบกำกับภาษี · +2 เครดิต', 'ช่วยให้ AI เขียนให้ตรงกับธุรกิจของคุณ ชื่อบริษัทไม่ถูกส่งให้ AI'),
         step(2, 'ตอบคำถามเรื่องตำแหน่ง', '5 ข้อแรก · ราว 3 นาที', 'กดเลือกจากตัวเลือกที่ AI เสนอ หรือพิมพ์เอง ข้อไหนไม่แน่ใจกดข้ามได้ ระบบบันทึกให้อัตโนมัติ'),
         step(3, 'เลือกระดับ JD', 'สร้างได้ทันทีที่ข้อมูลพอ', 'เริ่มจาก Role Brief ฟรีก่อนก็ได้ อัปเกรดทีหลังได้ จ่ายเฉพาะส่วนต่าง และหมวดที่มีอยู่แล้วไม่เปลี่ยน',
           h('div.stack-tight', {}, tiers, app.me.hasSample ? h('div', {}, ui.button('ghost.small-btn', 'ดูตัวอย่าง JD ที่ระบบสร้าง', function () { window.open('#sample', '_blank'); }, { icon: 'jds' })) : null))),
@@ -46,7 +46,7 @@
 
   // ---------------- 2. getting-started checklist (until done or hidden) ----------------
   var ITEMS = [
-    ['company', 'กรอกข้อมูลบริษัท', '+1 เครดิต', '#company'],
+    ['company', 'กรอกข้อมูลบริษัท', '+2 เครดิต', '#company'],
     ['firstJd', 'สร้าง JD แรก', 'Role Brief ฟรี', '#quest'],
     ['core', 'กำหนด Core Competency', '+1 เครดิต', '#company/core'],
     ['leadership', 'กำหนด Leadership Competency', '+1 เครดิต', '#company/leadership'],
@@ -69,7 +69,7 @@
         return h('li' + (ok ? '.done' : '') + (it === next ? '.next' : ''), {},
           h('span.check-box', { 'aria-hidden': 'true' }, ok ? ui.icon('check') : null),
           ok ? h('span.check-label', { text: it[1] }) : h('a.check-label', { href: it[3], text: it[1] }),
-          h('span.check-reward', { text: ok ? 'เสร็จแล้ว' : it[2] }));
+          h('span.check-reward', { text: ok ? 'เสร็จแล้ว' : (/เครดิต$/.test(it[2]) && (app.me.org.bonus || {}).duplicate) ? '' : it[2] }));
       })));
     return card;
   }

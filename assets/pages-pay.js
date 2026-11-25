@@ -246,14 +246,7 @@
       })));
   }
 
-  // The company page gets the tax-invoice card at the end.
-  var company = window.pages.company;
-  if (company) {
-    window.pages.company = function (view, arg) {
-      company(view, arg);
-      view.appendChild(billingCard());
-    };
-  }
+  // The tax-invoice details are part of section 1 of the company page (pages-account.js), which uses billingForm/billingSummary.
 
-  window.pay = { billingForm: billingForm, billingCard: billingCard, ordersCard: ordersCard, statusTag: statusTag, baht: baht, readFile: readFile };
+  window.pay = { billingForm: billingForm, billingSummary: billingSummary, billingCard: billingCard, ordersCard: ordersCard, statusTag: statusTag, baht: baht, readFile: readFile };
 })();

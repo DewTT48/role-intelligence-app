@@ -84,6 +84,34 @@
       h('option', { value: 'th', text: 'ภาษาไทย', selected: org.jd_lang !== 'en' }),
       h('option', { value: 'en', text: 'ภาษาอังกฤษ (English)', selected: org.jd_lang === 'en' }));
     var msg = h('div');
+    // tax-invoice details: part of section 1; they also decide the company bonuses (once per taxpayer id)
+    var B = org.bonus || {};
+    var bill = window.pay ? window.pay.billingForm(org.billing || null) : null;
+    var billBox = h('div.stack');
+    var editingBill = !org.billing;
+    function drawBill() {
+      if (!bill) return;
+      if (editingBill) { ui.mount(billBox, bill.el); return; }
+      ui.mount(billBox, [window.pay.billingSummary(org.billing),
+        h('div.row', {}, ui.button('ghost.small-btn', 'แก้ไขข้อมูล', function () { editingBill = true; drawBill(); }, { icon: 'edit' }))]);
+    }
+    drawBill();
+    function billFilled() {
+      if (!bill || !editingBill) return false;
+      var v = bill.value();
+      return [v.name, v.taxId, v.address].some(function (x) { return String(x || '').trim(); });
+    }
+    function dupNote() {
+      return h('div.note.warn', { role: 'status' },
+        h('span', { text: 'เลขผู้เสียภาษีนี้มีบัญชีในระบบแล้ว คุณยังสร้าง JD และ Competency ของคุณเองได้ตามปกติ แต่ไม่ได้รับเครดิตจากข้อมูลบริษัทและ Competency · ถ้าต้องการใช้งานร่วมกันทั้งองค์กร ' }),
+        h('a', { href: '../#org-request', target: '_blank', rel: 'noopener', text: 'ติดต่อเรา' }));
+    }
+    var topNote = h('div', {}, B.duplicate ? dupNote() : (B.paid && B.paid.company) ? null : ui.note('info', 'กรอกครบทุกช่อง รวมข้อมูลสำหรับออกใบกำกับภาษี รับ +2 เครดิต'));
+    function compBonus(kind) {
+      var b = app.me.org.bonus || {};
+      if (b.duplicate || (b.paid && b.paid[kind])) return '';
+      return b.hasTaxId ? ' รับ +1 เครดิต' : ' รับ +1 เครดิต เมื่อกรอกเลขผู้เสียภาษีในข้อ 1';
+    }
     var sets = {
       core: { box: h('section.card.narrow.core-card', { id: 'core' }), no: '2', title: 'Core Competency ของบริษัท',
         intro: 'พฤติกรรมที่พนักงานทุกคนต้องมี ไม่ว่าจะทำตำแหน่งไหน ระบบใส่ให้ทุก JD ในหมวด Competency',
@@ -96,10 +124,17 @@
     };
     var save = ui.button('primary', 'บันทึก', function () {
       ui.busy(save, 'กำลังบันทึก…', function () {
-        return api.call('org.update', { name: name.value, business_type: type.value, main_goal: goal.value, code_prefix: prefix.value, jd_lang: jdLang.value }).then(function (r) {
+        var payload = { name: name.value, business_type: type.value, main_goal: goal.value, code_prefix: prefix.value, jd_lang: jdLang.value };
+        if (billFilled()) payload.billing = bill.value();
+        return api.call('org.update', payload).then(function (r) {
           app.setMe(r.me);
           if (r.bonus) ui.toast('ได้ +' + r.bonus + ' เครดิต ขอบคุณที่กรอกข้อมูลบริษัท');
           else ui.toast('บันทึกแล้ว');
+          if (r.me.org.billing) { org = r.me.org; editingBill = false; drawBill(); }
+          if (r.me.org.bonus && r.me.org.bonus.duplicate && !B.duplicate) {   // just found out: say so here instead of moving on
+            B = r.me.org.bonus; ui.mount(topNote, dupNote()); drawSet('core'); drawSet('leadership');
+            topNote.scrollIntoView({ behavior: 'smooth', block: 'center' }); return;
+          }
           if ((r.me.org.core || []).length) { app.go('#quest'); return; }
           ui.mount(msg, null);
           drawSet('core');
@@ -110,14 +145,17 @@
     ui.mount(view, [
       ui.pageHead('ใช้กับทุก JD ของบริษัท', 'ข้อมูลบริษัท'),
       h('section.card.narrow', {},
-        h('h2', { text: '1. ข้อมูลบริษัท · 3 คำถาม' }),
+        h('h2', { text: '1. ข้อมูลบริษัท' }),
         h('p', { text: 'ข้อมูลนี้ช่วยให้ AI เขียนหมวด "ความเชื่อมโยงกับธุรกิจ" ได้ตรงกับบริษัท ชื่อบริษัทจะไม่ถูกส่งให้ AI' }),
-        org.complete ? null : ui.note('info', 'กรอกครบ 3 ข้อ รับ +1 เครดิต'),
+        topNote,
         h('label.field', { for: 'org-name' }, 'ชื่อบริษัท (แสดงบนเอกสาร)', name),
         h('label.field', { for: 'org-type' }, 'ธุรกิจทำอะไร', type),
         h('label.field', { for: 'org-goal' }, 'เป้าหมายหลักปีนี้', goal),
         h('label.field', { for: 'org-prefix' }, 'คำนำหน้ารหัส JD (ไม่บังคับ เช่น HR- ได้รหัส HR-0001; เว้นว่าง = JD-)', prefix),
         h('label.field', { for: 'org-lang' }, 'ภาษาเริ่มต้นของ JD ใหม่ (เปลี่ยนได้ทีละตำแหน่งในหน้าสร้าง JD)', jdLang),
+        bill ? h('h3.sub-head', { text: 'ข้อมูลสำหรับออกใบกำกับภาษี' }) : null,
+        bill ? h('p.small.muted', { text: 'ใช้ออกใบกำกับภาษีเมื่อซื้อเครดิต ไม่ต้องกรอกซ้ำ · เครดิตฟรีจากข้อมูลบริษัทและ Competency ให้ 1 ครั้งต่อเลขผู้เสียภาษี' }) : null,
+        billBox,
         msg,
         h('div.row.end', {}, org.complete ? null : ui.button('ghost', 'ข้ามไปก่อน', function () { app.go('#quest'); }), save)),
       sets.core.box, sets.leadership.box
@@ -142,7 +180,7 @@
       var items = app.me.org[kind] || [];
       if (!items.length) {
         ui.mount(S.box, head(S).concat([
-          ui.note('info', S.empty + ' · กำหนดของบริษัทเอง ' + limitText(kind) + ' รับ +1 เครดิต (ครั้งแรก)'),
+          ui.note('info', S.empty + ' · กำหนดของบริษัทเอง ' + limitText(kind) + compBonus(kind)),
           h('div.row', {}, ui.button('ai-go', 'ให้ AI เสนอ', function () { openEditor(kind, [], true); }),
             ui.button('', 'พิมพ์เอง', function () { openEditor(kind, [], false); }))]));
         return;

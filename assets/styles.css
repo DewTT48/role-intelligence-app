@@ -703,3 +703,7 @@ html.poster .lang-opt.on { background: var(--indigo); border-color: var(--indigo
 .quality-secs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .quality-sec { font-size: 13px; padding: 4px 10px; cursor: pointer; }
 .jd-sec { scroll-margin-top: 16px; }
+
+/* company page: tax-invoice block inside section 1; admin: taxpayer id under the company name */
+.sub-head { margin: 14px 0 0; font-size: 1.02rem; padding-top: 14px; border-top: 1px solid var(--line, #e5e7eb); }
+.tax-line { margin-top: 6px; display: grid; gap: 4px; }

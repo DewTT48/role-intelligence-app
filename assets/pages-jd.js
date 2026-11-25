@@ -511,7 +511,7 @@
         if (!missing.length) return null;
         return h('div.note.info.core-nudge', { role: 'status' },
           h('span', { text: 'บริษัทยังไม่ได้กำหนด ' + missing.join(' และ ') + ' Competency · JD นี้ใช้ชุดที่ระบบคิดให้ กำหนดเองแล้วอัปเดตเข้า JD นี้ได้ฟรี' }),
-          ui.button('small-btn', 'กำหนดตอนนี้ · +1 เครดิตต่อชุด', function () { app.go('#company/' + (missing[0] === 'Core' ? 'core' : 'leadership')); }));
+          ui.button('small-btn', (app.me.org.bonus || {}).duplicate ? 'กำหนดตอนนี้' : 'กำหนดตอนนี้ · +1 เครดิตต่อชุด', function () { app.go('#company/' + (missing[0] === 'Core' ? 'core' : 'leadership')); }));
       }
 
       // ---------------- editing ----------------

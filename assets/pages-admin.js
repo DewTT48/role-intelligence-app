@@ -461,7 +461,7 @@
   // ---------------- ลูกค้าและเครดิต ----------------
   function customersTab(el) {
     var list = h('div.stack');
-    var q = h('input', { type: 'search', placeholder: 'ค้นหาด้วยอีเมลหรือชื่อบริษัท', 'aria-label': 'ค้นหาลูกค้า' });
+    var q = h('input', { type: 'search', placeholder: 'ค้นหาด้วยอีเมล ชื่อบริษัท หรือเลขผู้เสียภาษี', 'aria-label': 'ค้นหาลูกค้า' });
     var search = ui.debounce(function () { load(); }, 350);
     q.addEventListener('input', search);
     ui.mount(el, [h('div.row', {}, q), list]);
@@ -487,7 +487,7 @@
             ui.button('small-btn.danger', 'ลบบัญชี', function () { removeUser(u); }, { icon: 'trash' })));
       }));
       return h('tr', {},
-        h('td', {}, h('strong', { text: o.name || '(ยังไม่ตั้งชื่อ)' }), o.business_type ? h('div.small.muted', { text: o.business_type }) : null),
+        h('td', {}, h('strong', { text: o.name || '(ยังไม่ตั้งชื่อ)' }), o.business_type ? h('div.small.muted', { text: o.business_type }) : null, taxLine(o)),
         h('td', {}, users),
         h('td', {}, h('strong.credit-cell', { text: ui.fmtCredits(o.balance) })),
         h('td', { text: num(o.positions) + ' / ' + num(o.jds) }),
@@ -496,6 +496,21 @@
           ui.button('small-btn', 'ปรับเครดิต', function () { adjust(o); }, { icon: 'credits' }),
           ui.button('ghost.small-btn', 'ประวัติ', function () { ledger(o); }, { icon: 'history' }),
           o.jds ? ui.button('ghost.small-btn', 'ใช้เป็น JD ตัวอย่าง', function () { pickSample(o); }, { icon: 'jds' }) : null)));
+    }
+    // taxpayer id: company bonuses are given once per id; the number can be checked by hand at DBD (copy, then search there)
+    function taxLine(o) {
+      if (!o.taxId) return h('div.small.muted', { text: 'ยังไม่กรอกเลขผู้เสียภาษี' });
+      return h('div.tax-line', {},
+        o.legalName ? h('div.small', { text: o.legalName + (o.taxType === 'person' ? ' (บุคคลธรรมดา)' : '') }) : null,
+        h('div.row-tight', {},
+          h('span.mono.small', { text: o.taxId }),
+          o.taxDuplicate ? h('span.pill.del-pill', { text: 'เลขซ้ำ ไม่ได้โบนัส', title: 'เลขนี้มีบริษัทอื่นใช้ก่อน' })
+            : o.taxShared ? h('span.pill', { text: 'มีบัญชีอื่นใช้เลขนี้' }) : null,
+          ui.button('ghost.small-btn', 'ค้นที่ DBD', function () {
+            var done = function () { ui.toast('คัดลอกเลขแล้ว วางในช่องค้นหาของ DBD'); };
+            try { navigator.clipboard.writeText(o.taxId).then(done, done); } catch (e) { done(); }
+            window.open('https://datawarehouse.dbd.go.th/', '_blank', 'noopener');
+          }, { icon: 'copy' })));
     }
     function adjust(o) {
       var amount = h('input.mono', { type: 'number', step: '0.5', id: 'adj-amount', placeholder: 'เช่น 10 หรือ -2' });

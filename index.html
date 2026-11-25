@@ -9,7 +9,7 @@
 <script>/* The app moved to app/ (2026-11-23). Old links such as …/#jds, …/#unsubscribe?… or …/?demo=1 go there. */
 (function () {
   var id = location.hash.replace(/^#/, '');
-  var page = ['', 'top', 'hr', 'gain', 'try', 'org', 'how', 'pricing', 'faq', 'join', 'contact'];
+  var page = ['', 'top', 'hr', 'gain', 'try', 'org', 'how', 'pricing', 'faq', 'join', 'contact', 'org-request'];
   if (page.indexOf(id) < 0 && !/^jd-/.test(id) || /[?&](demo|theme)=/.test(location.search)) location.replace('app/' + location.search + location.hash);
 })();
 </script>
@@ -48,7 +48,7 @@
           <a class="btn btn-ghost btn-lg" href="#try">ดูตัวอย่างก่อน</a>
         </div>
         <ul class="trust">
-          <li>สมัครด้วยอีเมล ไม่ต้องใช้บัตร</li><li>ได้ 3 เครดิตฟรี</li><li>ไม่มีรายเดือน</li>
+          <li>สมัครด้วยอีเมล ไม่ต้องใช้บัตร</li><li>รับเครดิตฟรีสูงสุด 6 เครดิต</li><li>ไม่มีรายเดือน</li>
         </ul>
       </div>
       <figure class="hero-photo">
@@ -297,7 +297,7 @@
       <h2><span>ลงชื่อวันนี้ ได้ใช้ก่อน<i class="dot"></i></span><span class="sub">เลือกตำแหน่งที่ค้างไว้นานที่สุดก่อนก็ได้</span></h2>
       <div class="final-cta">
         <a class="btn btn-pink btn-lg js-cta" href="#join">ลงชื่อขอใช้งาน <span aria-hidden="true">→</span></a>
-        <p>ทยอยเปิดทุกวัน · ถึงคิวรับฟรี 3 เครดิต</p>
+        <p>ทยอยเปิดทุกวัน · ถึงคิวรับเครดิตฟรีสูงสุด 6 เครดิต</p>
       </div>
     </div>
   </section>
@@ -339,6 +339,6 @@
 <script src="assets/sample-jds.js?v=20261123b"></script>
 <script src="assets/landing.js?v=20261123h"></script>
 <script src="config.js?v=20261125a"></script>
-<script src="assets/launch.js?v=20261125f"></script>
+<script src="assets/launch.js?v=20261125t"></script>
 </body>
 </html>

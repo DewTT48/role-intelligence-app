@@ -55,7 +55,7 @@
     setPage({ join: false, href: 'app/', cta: 'เข้าใช้งาน', head: 'ทำ JD ตำแหน่งถัดไปต่อเลย', note: 'คุณเข้าสู่ระบบไว้แล้วในเบราว์เซอร์นี้' });
   }
   function openMode() {
-    setPage({ join: false, href: 'app/#signin', cta: 'เริ่มสร้าง JD ฟรี', head: 'ลองสร้าง JD แรกวันนี้', note: 'ไม่ต้องใช้บัตร · สมัครใหม่รับฟรี 3 เครดิต' });
+    setPage({ join: false, href: 'app/#signin', cta: 'เริ่มสร้าง JD ฟรี', head: 'ลองสร้าง JD แรกวันนี้', note: 'ไม่ต้องใช้บัตร · รับเครดิตฟรีสูงสุด 6 เครดิต' });
   }
   if (join) {
     if (signedIn()) memberMode();
@@ -102,6 +102,7 @@
         setTimeout(function () { org.name.focus(); }, 50);
       });
     });
+    if (location.hash === '#org-request') openDlg(orgDlg);   // link from the app (a taxpayer id already in use)
     org.addEventListener('submit', function (e) {
       e.preventDefault();
       var msg = $('.form-msg', org), btn = $('button', org);

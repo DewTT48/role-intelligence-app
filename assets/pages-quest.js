@@ -261,7 +261,7 @@
       if (!missing.length) return null;
       return h('div.note.info.core-nudge', { role: 'status' },
         h('span', { text: 'บริษัทยังไม่ได้กำหนด ' + missing.join(' และ ') + ' Competency · JD จะใช้ชุดที่ระบบคิดให้ไปก่อน' }),
-        ui.button('small-btn', 'กำหนดตอนนี้ · +1 เครดิตต่อชุด', function () { app.go('#company/' + (missing[0] === 'Core' ? 'core' : 'leadership')); }));
+        ui.button('small-btn', (app.me.org.bonus || {}).duplicate ? 'กำหนดตอนนี้' : 'กำหนดตอนนี้ · +1 เครดิตต่อชุด', function () { app.go('#company/' + (missing[0] === 'Core' ? 'core' : 'leadership')); }));
     }
 
     function renderStatus() { if (els.status) els.status.textContent = st.saving; }
