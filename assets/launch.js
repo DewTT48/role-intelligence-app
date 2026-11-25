@@ -33,20 +33,65 @@
     $('.js-waiting', join).textContent = num(s.waiting);
     join.classList.toggle('full', !s.remainingToday);
   }
+  // The backend answers in 1–6 s. Until then a click on a start button waits for the answer instead of going to
+  // sign-in, and the mode seen last time is shown straight away (kept in this browser only).
+  var MODE_KEY = 'ri_launch_mode';
+  var ctas = $$('.js-cta');
+  var head = $('.final h2 span'), note = $('.final-cta p');
+  var orig = {
+    cta: ctas.map(function (a) { return { href: a.getAttribute('href'), html: a.innerHTML }; }),
+    head: null,                         // taken when first changed: thai-wrap.js may still rewrap it before then
+    note: note ? note.textContent : null
+  };
+  function remember(mode) { try { localStorage.setItem(MODE_KEY, mode); } catch (e) { /* private window */ } }
+  function remembered() { try { return localStorage.getItem(MODE_KEY); } catch (e) { return null; } }
+
   function waitlistMode(s) {
     join.hidden = false;
     paint(s);
-    $$('.js-cta').forEach(function (a) {
+    ctas.forEach(function (a) {
       a.setAttribute('href', '#join');
       a.innerHTML = 'ลงชื่อขอใช้งาน <span aria-hidden="true">→</span>';
     });
-    var head = $('.final h2 span');
-    if (head && head.firstChild) head.firstChild.nodeValue = 'ลงชื่อวันนี้ ได้ใช้ก่อน';
-    var note = $('.final-cta p');
+    if (head) {                         // thai-wrap.js wraps the words in spans, so rebuild it and keep the pink dot
+      if (orig.head == null) orig.head = head.innerHTML;
+      var dot = head.querySelector('.dot');
+      head.textContent = 'ลงชื่อวันนี้ ได้ใช้ก่อน';
+      if (dot) head.appendChild(dot);
+    }
     if (note) note.textContent = 'ทยอยเปิดทุกวัน · ถึงคิวรับฟรี 3 เครดิต';
   }
+  function openMode() {
+    join.hidden = true;
+    ctas.forEach(function (a, i) { a.setAttribute('href', orig.cta[i].href); a.innerHTML = orig.cta[i].html; });
+    if (head && orig.head != null) head.innerHTML = orig.head;
+    if (note && orig.note != null) note.textContent = orig.note;
+  }
   if (join) {
-    call('waitlist.status').then(function (s) { if (s.mode === 'waitlist') waitlistMode(s); }).catch(function () { /* page still works as before */ });
+    if (remembered() === 'waitlist') waitlistMode(null);   // numbers stay "–" until the backend answers
+    var settled = false;
+    var status = call('waitlist.status').then(function (s) {
+      remember(s.mode === 'waitlist' ? 'waitlist' : 'open');
+      if (s.mode === 'waitlist') waitlistMode(s); else openMode();
+    }).catch(function () { /* page still works as before */ }).then(function () { settled = true; });
+    var timeout = new Promise(function (res) { setTimeout(res, 12000); });
+    ctas.forEach(function (a) {
+      a.addEventListener('click', function (e) {
+        if (settled) return;
+        e.preventDefault();
+        if (a.classList.contains('is-wait')) return;
+        var html = a.innerHTML;
+        a.classList.add('is-wait'); a.setAttribute('aria-busy', 'true');
+        a.textContent = 'กำลังเปิด…';
+        Promise.race([status, timeout]).then(function () {
+          a.classList.remove('is-wait'); a.removeAttribute('aria-busy');
+          if (!settled) a.innerHTML = html;          // backend too slow: carry on with what the button says
+          var href = a.getAttribute('href');
+          if (href.charAt(0) === '#') { var t = $(href); if (t) t.scrollIntoView({ behavior: 'smooth' }); history.replaceState(null, '', href); }
+          else location.href = href;
+        });
+      });
+    });
     var form = $('.join-form', join);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
