@@ -234,7 +234,16 @@ p, li { text-wrap: pretty; }
 .faq summary::after { content: '+'; font-family: var(--display); font-size: 30px; line-height: 1; color: var(--hot-ink); transition: transform .2s; flex: none; }
 .faq details[open] summary::after { transform: rotate(45deg); }
 .faq details p { padding: 0 0 22px; color: var(--ink-2); }
-@media (max-width: 900px) { .faq-in { grid-template-columns: 1fr; gap: 0; } }
+.faq details p + p { margin-top: -10px; }
+.faq details p a { color: var(--indigo-ink); font-weight: 700; }
+/* who designed it (left column of the FAQ) */
+.maker { margin-top: 36px; background: var(--indigo); color: #fff; border: 1px solid #080808; border-radius: var(--r); box-shadow: var(--hard); padding: 26px; display: grid; gap: 10px; }
+.maker-num { display: flex; align-items: center; gap: 14px; }
+.maker-num b { font-family: var(--display); font-weight: 400; font-size: 64px; line-height: 1; color: var(--hot); }
+.maker-num > span { font-weight: 700; line-height: 1.3; color: #E1E3FA; }
+.maker h3 { font-size: 21px; line-height: 1.3; }
+.maker > p:last-child { color: #D5D8F7; }
+@media (max-width: 900px) { .faq-in { grid-template-columns: 1fr; gap: 0; } .maker { margin: 8px 0 36px; } }
 
 /* ============ final ============ */
 .final { position: relative; color: #fff; overflow: hidden; background: #080808; }
