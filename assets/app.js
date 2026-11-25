@@ -4,7 +4,7 @@
   var view = document.getElementById('view');
   var app = window.app = {
     me: null,
-    VIDEO_URL: 'https://youtu.be/wpcEwquhLlU',   // how-to video on the owner's YouTube channel
+    VIDEO_URL: 'https://youtu.be/aD_j7jd-yoQ',   // how-to video on the owner's YouTube channel
     questions: null,
     view: view,
     /** Reloads the signed-in user (credits change after most actions). */
