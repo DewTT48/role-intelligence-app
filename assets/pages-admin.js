@@ -271,7 +271,7 @@
           d.beforeStart ? stat('เปิดวันละ', num(d.dailyQuota) + ' ที่', 'เริ่มนับตั้งแต่วันเริ่มรับ') :
             stat('เหลือวันนี้', num(d.remainingToday) + ' ที่', 'ปล่อยอัตโนมัติไปแล้ว ' + num(d.admittedToday), d.remainingToday ? 'pink' : null),
           stat('รอคิวอยู่', num(d.waiting) + ' คน', d.dailyQuota ? 'ถ้าไม่เพิ่มโควตา คิวสุดท้ายรอราว ' + num(Math.ceil(d.waiting / d.dailyQuota)) + ' วัน' : 'โควตาเป็น 0: ไม่มีใครได้เข้าอัตโนมัติ'),
-          stat('อีเมลที่ส่งได้อีกวันนี้', num(d.mailQuota), 'ระบบหยุดปล่อยอัตโนมัติเมื่อเหลือน้อยกว่า 3')),
+          stat('อีเมลที่ระบบส่งวันนี้', num(d.mailSentToday || 0) + ' ฉบับ', 'นับเอง เริ่มใหม่ทุกเที่ยงคืน · Google ยังให้ส่งได้อีกราว ' + num(d.mailQuota) + ' (นับย้อนหลัง 24 ชม. รวมทุกระบบในบัญชีนี้)')),
         h('section.card.stack', {},
           h('h2', { text: 'ตั้งค่า' }),
           h('div.row', {}, h('label', { style: 'display:flex;align-items:center;gap:8px;font-weight:700' }, 'เปิดวันละ', quota, 'คน'),

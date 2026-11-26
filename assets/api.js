@@ -194,7 +194,7 @@
     var waiting = q.rows.filter(function (r) { return r.status === 'waiting'; });
     var auto = q.rows.filter(function (r) { return r.admitted_by === 'auto'; }).length;
     var today = new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10);
-    return { mode: q.mode, dailyQuota: q.dailyQuota, admittedToday: auto, remainingToday: Math.max(0, q.dailyQuota - auto), waiting: waiting.length, mailQuota: 96,
+    return { mode: q.mode, dailyQuota: q.dailyQuota, admittedToday: auto, remainingToday: Math.max(0, q.dailyQuota - auto), waiting: waiting.length, mailQuota: 1480, mailSentToday: 12,
       startDate: q.startDate || '', admitHour: q.admitHour === undefined ? 9 : q.admitHour, beforeStart: !!(q.startDate && today < q.startDate),
       rows: q.rows.map(function (r) { return Object.assign({}, r, { position: r.status === 'waiting' ? waiting.indexOf(r) + 1 : null }); }).reverse() };
   }
