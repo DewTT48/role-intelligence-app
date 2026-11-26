@@ -230,8 +230,12 @@
     function draw(d) {
       var isWait = d.mode === 'waitlist';
       var quota = h('input', { type: 'number', min: '0', max: '1000', value: String(d.dailyQuota), 'aria-label': 'จำนวนที่เปิดต่อวัน', style: 'width:110px' });
+      var start = h('input', { type: 'date', value: d.startDate || '', 'aria-label': 'วันเริ่มรับเข้าใช้' });
+      var hour = h('select', { 'aria-label': 'เวลาปล่อยคิวทุกวัน' }, Array.from({ length: 24 }, function (_, i) {
+        return h('option', { value: String(i), text: (i < 10 ? '0' : '') + i + ':00 น.', selected: i === (d.admitHour === undefined ? 9 : d.admitHour) });
+      }));
       var save = ui.button('primary.small-btn', 'บันทึก', function () {
-        ui.busy(save, 'กำลังบันทึก…', function () { return api.call('admin.waitlist.config', { dailyQuota: Number(quota.value) }).then(draw); })
+        ui.busy(save, 'กำลังบันทึก…', function () { return api.call('admin.waitlist.config', { dailyQuota: Number(quota.value), startDate: start.value, admitHour: Number(hour.value) }).then(draw); })
           .catch(function (e) { ui.toast(ui.errorText(e), 'err'); });
       });
       var modeBtn = ui.button(isWait ? 'ghost.small-btn' : 'primary.small-btn', isWait ? 'เปิดให้สมัครได้ทันที (เลิกใช้คิว)' : 'เริ่มใช้คิว (ปิดการสมัครตรง)', function () {
@@ -262,13 +266,19 @@
         ui.note(isWait ? 'warn' : 'info', isWait ? 'ตอนนี้ใช้คิวอยู่: อีเมลใหม่ต้องลงชื่อที่หน้าแรก ระบบปล่อยตามลำดับวันละ ' + d.dailyQuota + ' คน (นับตามวันไทย) และส่งอีเมลแจ้ง' :
           'ตอนนี้ใครก็สมัครได้ทันที (ยังไม่ได้ใช้คิว) · หน้าแรกจะแสดงตัวนับและฟอร์มลงชื่อเมื่อเริ่มใช้คิว'),
         h('div.stats', {},
-          stat('วันนี้เปิด', num(d.dailyQuota) + ' ที่', 'หน้าแรกแสดงตัวเลขนี้'),
-          stat('เหลือวันนี้', num(d.remainingToday) + ' ที่', 'ปล่อยอัตโนมัติไปแล้ว ' + num(d.admittedToday), d.remainingToday ? 'pink' : null),
+          d.beforeStart ? stat('เริ่มรับเข้าใช้', new Date(d.startDate + 'T00:00:00').toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short' }), 'เวลา ' + d.admitHour + ':00 น. · ก่อนวันนั้นลงชื่อได้อย่างเดียว', 'pink') :
+            stat('วันนี้เปิด', num(d.dailyQuota) + ' ที่', 'ปล่อยทุกวัน ' + (d.admitHour === undefined ? 9 : d.admitHour) + ':00 น. · หน้าแรกแสดงตัวเลขนี้'),
+          d.beforeStart ? stat('เปิดวันละ', num(d.dailyQuota) + ' ที่', 'เริ่มนับตั้งแต่วันเริ่มรับ') :
+            stat('เหลือวันนี้', num(d.remainingToday) + ' ที่', 'ปล่อยอัตโนมัติไปแล้ว ' + num(d.admittedToday), d.remainingToday ? 'pink' : null),
           stat('รอคิวอยู่', num(d.waiting) + ' คน', d.dailyQuota ? 'ถ้าไม่เพิ่มโควตา คิวสุดท้ายรอราว ' + num(Math.ceil(d.waiting / d.dailyQuota)) + ' วัน' : 'โควตาเป็น 0: ไม่มีใครได้เข้าอัตโนมัติ'),
           stat('อีเมลที่ส่งได้อีกวันนี้', num(d.mailQuota), 'ระบบหยุดปล่อยอัตโนมัติเมื่อเหลือน้อยกว่า 3')),
         h('section.card.stack', {},
           h('h2', { text: 'ตั้งค่า' }),
-          h('div.row', {}, h('label', { style: 'display:flex;align-items:center;gap:8px;font-weight:700' }, 'เปิดวันละ', quota, 'คน'), save, modeBtn, admitAll),
+          h('div.row', {}, h('label', { style: 'display:flex;align-items:center;gap:8px;font-weight:700' }, 'เปิดวันละ', quota, 'คน'),
+            h('label', { style: 'display:flex;align-items:center;gap:8px;font-weight:700' }, 'เริ่มรับวันที่', start),
+            h('label', { style: 'display:flex;align-items:center;gap:8px;font-weight:700' }, 'ปล่อยคิวทุกวันเวลา', hour)),
+          h('div.row', {}, save, modeBtn, admitAll),
+          h('p.small.muted', { text: 'ก่อนวันเริ่มรับ คนลงชื่อเข้าคิวได้อย่างเดียว · ตั้งแต่วันนั้น ระบบปล่อยคนตามลำดับทุกวันตามเวลาที่ตั้ง (เวลาไทย) และส่งอีเมล "ถึงคิวคุณแล้ว" พร้อมวิธีเข้าใช้ · เว้นวันว่าง = เริ่มรับแล้ว' }),
           h('p.small.muted', { text: 'การกด "ปล่อยเลย" ไม่นับรวมกับโควตาที่หน้าแรกแสดง · คนที่ปล่อยแล้วสมัครด้วยอีเมลนั้นได้ทันที' })),
         table(['คิว', 'อีเมล', 'สถานะ', 'ลงชื่อเมื่อ', 'ปล่อยเมื่อ', ''], rows)]);
     }

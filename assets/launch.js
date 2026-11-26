@@ -6,7 +6,7 @@
   var demo = /[?&]mock=1/.test(location.search) || !cfg.apiUrl;   // ?demo=1 on this page already means "open the app demo"
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
-  var DEMO = { mode: 'waitlist', dailyQuota: 10, admittedToday: 6, remainingToday: 4, waiting: 0 };
+  var DEMO = { mode: 'waitlist', dailyQuota: 20, admittedToday: 0, remainingToday: 20, waiting: 37, beforeStart: true, startDate: '2026-11-30', admitHour: 9 };
 
   function call(action, payload) {
     if (demo) return new Promise(function (res) { setTimeout(function () { res(fake(action, payload || {})); }, 500); });
@@ -16,22 +16,33 @@
   }
   function fake(action, p) {
     if (action === 'waitlist.join') {
-      if (DEMO.remainingToday > 0) { DEMO.remainingToday--; DEMO.admittedToday++; return Object.assign({ status: 'admitted' }, DEMO); }
-      DEMO.waiting++; return Object.assign({ status: 'waiting', position: DEMO.waiting, etaDays: Math.ceil(DEMO.waiting / DEMO.dailyQuota) }, DEMO);
+      if (!DEMO.beforeStart && DEMO.remainingToday > 0) { DEMO.remainingToday--; DEMO.admittedToday++; return Object.assign({ status: 'admitted' }, DEMO); }
+      DEMO.waiting++; return Object.assign({ status: 'waiting', position: DEMO.waiting, etaDays: Math.ceil(DEMO.waiting / DEMO.dailyQuota), etaDay: DEMO.waiting <= 20 ? '2026-11-30' : '2026-12-01' }, DEMO);
     }
     if (action === 'inquiry.submit') return { received: true };
     return Object.assign({}, DEMO);
   }
   function num(n) { return Number(n || 0).toLocaleString('th-TH'); }
+  var MON = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  var DAY = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสฯ', 'ศุกร์', 'เสาร์'];
+  function thDate(day, withDay) { var d = new Date(day + 'T00:00:00Z'); return (withDay ? DAY[d.getUTCDay()] + ' ' : '') + d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
 
   // ---------- queue ----------
   var join = $('#join');
   function paint(s) {
     if (!join || !s) return;
-    $('.js-quota', join).textContent = num(s.dailyQuota);
-    $('.js-left', join).textContent = num(s.remainingToday);
+    var pre = !!s.beforeStart;
+    // before the start date the three boxes read: เริ่มเปิด <date> · วันละ <n> ที่ · รอคิวอยู่ <n> คน
+    $('.js-quota-label', join).textContent = pre ? 'เริ่มเปิด' : 'วันนี้เปิด';
+    $('.js-quota', join).textContent = pre ? thDate(s.startDate) : num(s.dailyQuota);
+    $('.js-quota-unit', join).textContent = pre ? (s.admitHour + ':00 น.') : 'ที่';
+    $('.js-left-label', join).textContent = pre ? 'วันละ' : 'เหลือ';
+    $('.js-left', join).textContent = num(pre ? s.dailyQuota : s.remainingToday);
     $('.js-waiting', join).textContent = num(s.waiting);
-    join.classList.toggle('full', !s.remainingToday);
+    join.classList.toggle('pre', pre);
+    join.classList.toggle('full', !pre && !s.remainingToday);
+    var lead = $('.js-join-when', join);
+    if (lead) lead.textContent = pre ? 'เริ่มเปิดให้ใช้วัน' + thDate(s.startDate, true) + ' เวลา ' + s.admitHour + ':00 น. ลงชื่อไว้วันนี้ ได้คิวก่อน' : '';
   }
   // The page starts in queue mode (index.html), so a click before the backend answers (1–6 s) is never wrong.
   // Someone already signed in on this browser (the app keeps its token under ri.token) gets "เข้าใช้งาน" straight away;
@@ -79,7 +90,7 @@
           msg.innerHTML = 'อีเมลนี้มีบัญชีอยู่แล้ว <a href="app/#signin">เข้าสู่ระบบ</a> ได้เลย';
         } else {
           msg.className = 'form-msg ok';
-          msg.textContent = 'ลงชื่อแล้ว คุณอยู่คิวที่ ' + num(r.position) + (r.etaDays ? ' · คาดว่าถึงคิวภายในราว ' + num(r.etaDays) + ' วัน' : '') + ' · เราส่งอีเมลยืนยันให้แล้ว';
+          msg.textContent = 'ลงชื่อแล้ว คุณอยู่คิวที่ ' + num(r.position) + (r.etaDay ? ' · คาดว่าได้เข้าใช้วัน' + thDate(r.etaDay, true) : r.etaDays ? ' · คาดว่าถึงคิวภายในราว ' + num(r.etaDays) + ' วัน' : '') + ' · เราส่งอีเมลยืนยันให้แล้ว';
         }
         form.reset();
       }).catch(function (err) {

@@ -193,7 +193,9 @@
     var q = db.queue || (db.queue = demoQueueState());
     var waiting = q.rows.filter(function (r) { return r.status === 'waiting'; });
     var auto = q.rows.filter(function (r) { return r.admitted_by === 'auto'; }).length;
+    var today = new Date(Date.now() + 7 * 3600000).toISOString().slice(0, 10);
     return { mode: q.mode, dailyQuota: q.dailyQuota, admittedToday: auto, remainingToday: Math.max(0, q.dailyQuota - auto), waiting: waiting.length, mailQuota: 96,
+      startDate: q.startDate || '', admitHour: q.admitHour === undefined ? 9 : q.admitHour, beforeStart: !!(q.startDate && today < q.startDate),
       rows: q.rows.map(function (r) { return Object.assign({}, r, { position: r.status === 'waiting' ? waiting.indexOf(r) + 1 : null }); }).reverse() };
   }
   function demoInquiries() {
@@ -488,6 +490,8 @@
       var q = db.queue || (db.queue = demoQueueState());
       if (p.mode) q.mode = p.mode === 'waitlist' ? 'waitlist' : 'open';
       if (p.dailyQuota !== undefined) q.dailyQuota = Math.max(0, Math.floor(Number(p.dailyQuota) || 0));
+      if (p.startDate !== undefined) q.startDate = String(p.startDate || '');
+      if (p.admitHour !== undefined) q.admitHour = Number(p.admitHour);
       return demoQueue();
     },
     'admin.waitlist.admit': function (p) {
