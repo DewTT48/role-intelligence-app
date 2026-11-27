@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
-<link rel="stylesheet" href="assets/landing.css?v=20261126b">
+<link rel="stylesheet" href="assets/landing.css?v=20261127a">
 </head>
 <body>
 
@@ -285,14 +285,15 @@
   <section class="sec join" id="join">
     <div class="wrap join-in">
       <div>
-        <p class="kicker">เปิดให้ใช้รอบแรก</p>
+        <p class="kicker">ช่วงทดลองใช้ (Beta)</p>
         <h2 class="sec-title">ทยอยเปิดทุกวัน<br>ลงชื่อก่อน ได้คิวก่อน</h2>
-        <p class="join-lead"><strong class="js-join-when"></strong>เราเปิดให้ใช้วันละไม่กี่ราย เพื่อดูแลทุกบริษัทที่เข้ามาให้ได้ JD ที่ดีจริง ถึงคิวแล้วเราส่งอีเมลแจ้งพร้อมวิธีเข้าใช้ · รับเครดิตฟรีสูงสุด 6 เครดิต</p>
+        <p class="join-lead"><strong class="js-join-when"></strong>ช่วง Beta เราเปิดให้ใช้<span class="js-beta-quota">วันละไม่กี่บริษัท</span> เพื่อดูแลทุกบริษัทให้ได้ JD ที่ดีจริง และนำความเห็นของผู้ใช้กลุ่มแรกไปปรับระบบ ถึงคิวแล้วเราส่งอีเมลแจ้งพร้อมวิธีเข้าใช้ · รับเครดิตฟรีสูงสุด 6 เครดิต</p>
         <div class="join-stats" aria-live="polite">
           <div><span class="js-quota-label">วันนี้เปิด</span><b class="js-quota">–</b><span class="js-quota-unit">ที่</span></div>
           <div class="hot"><span class="js-left-label">เหลือ</span><b class="js-left">–</b><span>ที่</span></div>
-          <div><span>รอคิวอยู่</span><b class="js-waiting">–</b><span>คน</span></div>
+          <div class="next"><span>ลงชื่อตอนนี้ ได้คิวที่</span><b class="js-next">–</b><span class="js-next-day"></span></div>
         </div>
+        <p class="join-proof js-proof" hidden></p>
       </div>
       <form class="join-form" novalidate>
         <label>อีเมลที่ใช้ทำงาน *<input name="email" type="email" autocomplete="email" required maxlength="120"></label>
@@ -355,6 +356,6 @@
 <script src="assets/sample-jds.js?v=20261123b"></script>
 <script src="assets/landing.js?v=20261123h"></script>
 <script src="config.js?v=20261125a"></script>
-<script src="assets/launch.js?v=20261126b"></script>
+<script src="assets/launch.js?v=20261127a"></script>
 </body>
 </html>

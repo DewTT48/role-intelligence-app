@@ -6,7 +6,7 @@
   var demo = /[?&]mock=1/.test(location.search) || !cfg.apiUrl;   // ?demo=1 on this page already means "open the app demo"
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
-  var DEMO = { mode: 'waitlist', dailyQuota: 20, admittedToday: 0, remainingToday: 20, waiting: 37, beforeStart: true, startDate: '2026-11-30', admitHour: 9 };
+  var DEMO = { mode: 'waitlist', dailyQuota: 20, admittedToday: 0, remainingToday: 20, waiting: 19, beforeStart: true, startDate: '2026-11-30', admitHour: 9, nextAdmitDay: '2026-11-30', freeToday: 20 };
 
   function call(action, payload) {
     if (demo) return new Promise(function (res) { setTimeout(function () { res(fake(action, payload || {})); }, 500); });
@@ -25,6 +25,7 @@
   function num(n) { return Number(n || 0).toLocaleString('th-TH'); }
   var MON = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
   var DAY = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสฯ', 'ศุกร์', 'เสาร์'];
+  function addDay(day, n) { var d = new Date(day + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
   function thDate(day, withDay) { var d = new Date(day + 'T00:00:00Z'); return (withDay ? DAY[d.getUTCDay()] + ' ' : '') + d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
 
   // ---------- queue ----------
@@ -38,11 +39,19 @@
     $('.js-quota-unit', join).textContent = pre ? (s.admitHour + ':00 น.') : 'ที่';
     $('.js-left-label', join).textContent = pre ? 'วันละ' : 'เหลือ';
     $('.js-left', join).textContent = num(pre ? s.dailyQuota : s.remainingToday);
-    $('.js-waiting', join).textContent = num(s.waiting);
+    // the third box speaks to the person about to sign up: their place and the day they get in
+    var pos = (s.waiting || 0) + 1, q = s.dailyQuota || 0, first = s.nextAdmitDay || s.startDate, free = s.freeToday === undefined ? q : s.freeToday;
+    var eta = !q || !first ? '' : pos <= free ? first : addDay(first, Math.ceil((pos - free) / q));
+    $('.js-next', join).textContent = num(pos);
+    $('.js-next-day', join).textContent = eta ? 'ได้ใช้ ' + thDate(eta, true) : '';
+    var proof = $('.js-proof', join);
+    if (proof) { proof.hidden = !s.waiting; proof.textContent = 'มีบริษัทลงชื่อรอแล้ว ' + num(s.waiting) + ' ราย'; }
+    var bq = $('.js-beta-quota', join);
+    if (bq && q) bq.textContent = 'วันละ ' + num(q) + ' บริษัท';
     join.classList.toggle('pre', pre);
     join.classList.toggle('full', !pre && !s.remainingToday);
     var lead = $('.js-join-when', join);
-    if (lead) lead.textContent = pre ? 'เริ่มเปิดให้ใช้วัน' + thDate(s.startDate, true) + ' เวลา ' + s.admitHour + ':00 น. ลงชื่อไว้วันนี้ ได้คิวก่อน' : '';
+    if (lead) lead.textContent = pre ? 'เริ่มเปิดให้ใช้วัน' + thDate(s.startDate, true) + ' เวลา ' + s.admitHour + ':00 น. ลงชื่อไว้วันนี้ ได้คิวก่อน' : 'ช่วง Beta ปล่อยคิวทุกวัน เวลา ' + (s.admitHour === undefined ? 9 : s.admitHour) + ':00 น.';
   }
   // The page starts in queue mode (index.html), so a click before the backend answers (1–6 s) is never wrong.
   // Someone already signed in on this browser (the app keeps its token under ri.token) gets "เข้าใช้งาน" straight away;

@@ -486,3 +486,7 @@ dialog.pop-video { width: min(1100px, calc(100vw - 32px)); background: #080808; 
 .join.pre .join-stats .js-quota { font-family: 'Chakra Petch', sans-serif; font-weight: 700; font-size: 34px; }
 .join-lead .js-join-when { display: block; margin-bottom: 6px; color: #080808; }
 .join-stats b span { font-size: inherit; font-weight: inherit; }   /* thai-wrap puts the date's words in spans */
+/* queue: the third box = the visitor's own place and day; a small line with how many already signed up */
+.join-stats div.next { flex-wrap: wrap; }
+.join-stats div.next .js-next-day { flex-basis: 100%; font-size: 15px; color: var(--indigo); }
+.join-proof { margin: 16px 0 0; font-weight: 700; font-size: 15px; color: var(--indigo); }
